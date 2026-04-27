@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lumera">
+<title>Lumera App</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --gold:#D4A017;--gold-dark:#A07810;
+  --bg:#0A0A0A;--bg2:#141414;--bg3:#1E1E1E;
+  --text:#F5F0E8;--text2:#A09880;--border:rgba(212,160,23,0.25);
+  --red:#e24b4a;--green:#7cc92a;
+  --w-color:#E8242A;--z-color:#00C8E0;
+  --radius:12px;--ff:'DM Sans',system-ui,sans-serif;--ff2:'Bebas Neue',sans-serif;
+}
+body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100vh;max-width:420px;margin:0 auto;overflow-x:hidden}
+
+/* LOADING */
+#loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* LOGIN */
+#login-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+.login-form{width:100%;max-width:300px;display:flex;flex-direction:column;gap:12px}
+.li{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;color:var(--text);font-family:var(--ff);font-size:15px;outline:none;width:100%}
+.li:focus{border-color:var(--gold)}.li::placeholder{color:var(--text2)}
+.lbtn{background:var(--gold);border:none;border-radius:var(--radius);padding:15px;color:#000;font-family:var(--ff);font-size:15px;font-weight:600;cursor:pointer}
+.lbtn:disabled{opacity:0.6;cursor:default}
+.lerr{color:var(--red);font-size:13px;text-align:center;min-height:18px}
+.remrow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer}
+.remrow input{width:16px;height:16px;accent-color:var(--gold);cursor:pointer}
+
+/* APP */
+#app-shell{display:none;flex-direction:column;min-height:100vh}
+.top-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:6px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.admin-badge{background:rgba(232,36,42,0.15);border:1px solid rgba(232,36,42,0.4);color:var(--w-color);font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
+.content{flex:1;padding:16px;padding-bottom:80px}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:var(--bg2);border-top:1px solid var(--border);display:flex;z-index:100}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;cursor:pointer;border:none;background:transparent;color:var(--text2);font-family:var(--ff);font-size:10px}
+.nav-item.active{color:var(--gold)}
+.nav-svg{width:20px;height:20px;fill:currentColor}
+.nav-rel{position:relative;display:inline-flex}
+.notif-dot{position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;background:var(--red);border:2px solid var(--bg2);display:none}
+
+.page{display:none}.page.active{display:block}
+.stitle{font-family:var(--ff2);font-size:1.6rem;letter-spacing:0.1em;margin-bottom:6px}
+.gline{width:40px;height:2px;background:var(--gold);margin-bottom:16px}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.scard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.slabel{font-size:11px;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px}
+.sval{font-family:var(--ff2);font-size:2rem;color:var(--gold)}
+.sunit{font-size:12px;color:var(--text2);margin-top:2px}
+.ssub{font-size:12px;color:var(--text2);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px}
+.new-btn{width:100%;background:var(--gold);border:none;border-radius:var(--radius);padding:15px;color:#000;font-family:var(--ff);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px}
+
+/* DELETE REQUESTS */
+.del-request{background:rgba(232,36,42,0.08);border:1px solid rgba(232,36,42,0.3);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+.dr-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.dr-sub{font-size:12px;color:var(--text2);margin-bottom:10px}
+.dr-actions{display:flex;gap:8px}
+.dr-approve{background:rgba(226,75,74,0.15);border:1px solid rgba(226,75,74,0.4);border-radius:8px;padding:7px 14px;color:var(--red);font-family:var(--ff);font-size:12px;font-weight:600;cursor:pointer}
+.dr-deny{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--text2);font-family:var(--ff);font-size:12px;cursor:pointer}
+.pending-banner{background:rgba(232,36,42,0.08);border:1px solid rgba(232,36,42,0.25);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--red);margin-bottom:8px}
+
+/* INTERVENTION CARDS */
+.icard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+.icard-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.icard-left{flex:1;min-width:0}
+.ic-name{font-weight:600;font-size:15px;margin-bottom:2px}
+.ic-sub{font-size:12px;color:var(--text2);line-height:1.5}
+.icard-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.ic-price{font-family:var(--ff2);font-size:1.3rem;color:var(--gold);line-height:1}
+.ic-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.ic-meta{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--text2);align-items:center;margin-top:6px}
+.badge{background:rgba(212,160,23,0.12);color:var(--gold);font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);white-space:nowrap}
+.badge-done{background:rgba(124,201,42,0.12);color:var(--green);border-color:rgba(124,201,42,0.25)}
+.badge-started{background:rgba(212,160,23,0.15);color:var(--gold)}
+.btn-sm{font-size:11px;padding:4px 10px;border-radius:8px;cursor:pointer;font-family:var(--ff);border:1px solid;white-space:nowrap}
+.btn-del{background:rgba(226,75,74,0.12);border-color:rgba(226,75,74,0.3);color:var(--red)}
+.btn-del-pending{background:rgba(226,75,74,0.05);border-color:rgba(226,75,74,0.15);color:rgba(226,75,74,0.4);cursor:default}
+.btn-start{background:rgba(212,160,23,0.12);border-color:var(--border);color:var(--gold)}
+.btn-finish{background:rgba(124,201,42,0.12);border-color:rgba(124,201,42,0.3);color:var(--green)}
+
+/* CALENDAR */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-nav{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;cursor:pointer;color:var(--text);font-family:var(--ff);font-size:16px}
+.cal-month{font-family:var(--ff2);font-size:1.4rem;letter-spacing:0.08em}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:10px}
+.cal-dh{text-align:center;font-size:10px;color:var(--text2);padding:5px 0;text-transform:uppercase}
+.cal-day{text-align:center;padding:8px 2px;border-radius:8px;font-size:13px;cursor:pointer;min-height:34px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative}
+.cal-day.today{background:rgba(212,160,23,0.15);color:var(--gold);font-weight:600}
+.cal-day.has-ev-w::after{content:'';display:block;width:5px;height:5px;border-radius:50%;background:var(--w-color)}
+.cal-day.has-ev-z::after{content:'';display:block;width:5px;height:5px;border-radius:50%;background:var(--z-color)}
+.cal-day.has-ev-both::before{content:'';display:block;width:5px;height:5px;border-radius:50%;background:var(--w-color);position:absolute;bottom:4px;left:calc(50% - 6px)}
+.cal-day.has-ev-both::after{content:'';display:block;width:5px;height:5px;border-radius:50%;background:var(--z-color);position:absolute;bottom:4px;left:calc(50% + 1px)}
+.cal-day.sel{background:var(--gold);color:#000;font-weight:600}
+.cal-day.other{color:var(--text2);opacity:0.35}
+.cal-legend{display:flex;gap:16px;margin-bottom:12px;justify-content:flex-end}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cev{border-radius:0 var(--radius) var(--radius) 0;padding:12px 14px;margin-bottom:8px}
+.cev-w{background:rgba(232,36,42,0.08);border-left:3px solid var(--w-color)}
+.cev-z{background:rgba(0,200,224,0.08);border-left:3px solid var(--z-color)}
+.ce-time-w{font-size:12px;color:var(--w-color);margin-bottom:3px;font-weight:500}
+.ce-time-z{font-size:12px;color:var(--z-color);margin-bottom:3px;font-weight:500}
+.ce-name{font-weight:500;font-size:14px}
+.ce-detail{font-size:12px;color:var(--text2);margin-top:2px}
+.user-pill{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:6px}
+.pill-w{background:rgba(232,36,42,0.15);color:var(--w-color);border:1px solid rgba(232,36,42,0.3)}
+.pill-z{background:rgba(0,200,224,0.12);color:var(--z-color);border:1px solid rgba(0,200,224,0.25)}
+
+.filter-row{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
+.chip{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-size:12px;cursor:pointer;white-space:nowrap;color:var(--text2)}
+.chip.active{background:rgba(212,160,23,0.15);border-color:var(--gold);color:var(--gold)}
+.info-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.ict{font-size:11px;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(212,160,23,0.08);font-size:14px}
+.info-row:last-child{border-bottom:none}
+.ik{color:var(--text2)}
+.notebox{background:var(--bg3);border-radius:10px;padding:14px;font-size:14px;line-height:1.7;color:var(--text2)}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;display:none;flex-direction:column;justify-content:flex-end}
+.modal-overlay.open{display:flex}
+.msheet{background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px 32px;max-height:92vh;overflow-y:auto;border-top:1px solid var(--border)}
+.mhandle{width:40px;height:4px;background:var(--bg3);border-radius:2px;margin:0 auto 16px}
+.mtitle{font-family:var(--ff2);font-size:1.4rem;letter-spacing:0.08em;margin-bottom:4px}
+.msub{font-size:13px;color:var(--text2);margin-bottom:16px}
+.form-section{font-size:11px;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.fg{margin-bottom:13px}
+.fl{font-size:11px;color:var(--text2);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;display:block}
+.fi{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:var(--ff);font-size:14px;outline:none}
+.fi:focus{border-color:var(--gold)}
+.fi[readonly]{opacity:0.6}
+.fs{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:var(--ff);font-size:14px;outline:none;-webkit-appearance:none}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mactions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.bcancel{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;color:var(--text2);font-family:var(--ff);font-size:14px;cursor:pointer}
+.bsave{background:var(--gold);border:none;border-radius:10px;padding:14px;color:#000;font-family:var(--ff);font-size:14px;font-weight:600;cursor:pointer}
+.bsave:disabled{opacity:0.6;cursor:default}
+.ubadge{width:34px;height:34px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;cursor:pointer}
+
+/* PHOTOS */
+.upload-zone{background:var(--bg3);border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;margin-bottom:12px}
+.upload-icon{font-size:32px;margin-bottom:8px;color:var(--text2)}
+.upload-label{font-size:13px;color:var(--text2)}
+.upload-label span{color:var(--gold)}
+.preview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.prev-item{position:relative;aspect-ratio:1}
+.prev-item img,.prev-item video{width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+.prev-del{position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.type-badge{position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,0.7);border-radius:4px;font-size:9px;color:#fff;padding:1px 4px}
+
+/* SYNC INDICATOR */
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-left:6px}
+.sync-dot.syncing{background:var(--gold);animation:pulse 1s infinite}
+.sync-dot.error{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <img src="https://i.postimg.cc/brV0XrTg/logo.png" alt="Lumera" style="width:200px;height:auto;margin-bottom:24px">
+  <div class="spinner"></div>
+  <div style="font-size:13px;color:var(--text2);margin-top:12px">Connexion...</div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <img src="https://i.postimg.cc/brV0XrTg/logo.png" alt="Lumera" style="width:260px;height:auto;margin-bottom:2rem">
+  <div class="login-form">
+    <input class="li" id="lu" type="email" placeholder="Email" autocomplete="email">
+    <input class="li" id="lp" type="password" placeholder="Mot de passe" autocomplete="current-password">
+    <label class="remrow"><input type="checkbox" id="remember" checked> Se souvenir de moi</label>
+    <div class="lerr" id="lerr"></div>
+    <button class="lbtn" id="lbtn" onclick="doLogin()">Connexion</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-shell">
+  <div class="top-bar">
+    <img src="https://i.postimg.cc/brV0XrTg/logo.png" alt="Lumera" style="height:40px;width:auto">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="admin-badge" id="admin-badge" style="display:none">ADMIN</span>
+      <div style="font-size:12px;color:var(--text2)" id="welmsg"></div>
+      <div class="sync-dot" id="sync-dot" title="Synchronisé"></div>
+      <div class="ubadge" id="ubadge" onclick="doLogout()">W</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stitle">Dashboard</div><div class="gline"></div>
+      <div id="del-requests-section" style="display:none;margin-bottom:16px">
+        <div class="ssub" style="color:var(--red)">Demandes de suppression</div>
+        <div id="del-requests-list"></div>
+      </div>
+      <div class="sgrid">
+        <div class="scard"><div class="slabel">Ce mois</div><div class="sval" id="s-count">0</div><div class="sunit">Interventions</div></div>
+        <div class="scard"><div class="slabel">Revenus</div><div class="sval" id="s-rev">0</div><div class="sunit">€ ce mois</div></div>
+        <div class="scard"><div class="slabel">Aujourd'hui</div><div class="sval" id="s-today">0</div><div class="sunit">RDV aujourd'hui</div></div>
+        <div class="scard"><div class="slabel">Prix moyen</div><div class="sval" id="s-avg">79</div><div class="sunit">€ / intervention</div></div>
+      </div>
+      <button class="new-btn" onclick="openM('m-inter')">
+        <svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nouvelle intervention
+      </button>
+      <div class="ssub">Récentes</div>
+      <div id="dash-recent"></div>
+    </div>
+
+    <!-- CALENDRIER -->
+    <div class="page" id="page-calendar">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div class="stitle">Calendrier</div>
+        <span style="font-size:10px;color:var(--gold);border:1px solid var(--border);padding:3px 8px;border-radius:20px;letter-spacing:0.08em;text-transform:uppercase">Partagé</span>
+      </div>
+      <div class="gline"></div>
+      <div class="cal-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:var(--w-color)"></div>Wolfgang</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--z-color)"></div>Zalimkhan</div>
+      </div>
+      <div class="cal-header">
+        <button class="cal-nav" onclick="chMonth(-1)">‹</button>
+        <div class="cal-month" id="cal-label"></div>
+        <button class="cal-nav" onclick="chMonth(1)">›</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div id="cal-events"></div>
+    </div>
+
+    <!-- INTERVENTIONS -->
+    <div class="page" id="page-interventions">
+      <div class="stitle">Interventions</div><div class="gline"></div>
+      <div class="filter-row">
+        <div class="chip active" onclick="filterI('all',this)">Toutes</div>
+        <div class="chip" onclick="filterI('pending',this)">En attente</div>
+        <div class="chip" onclick="filterI('started',this)">En cours</div>
+        <div class="chip" onclick="filterI('done',this)">Terminées</div>
+      </div>
+      <div id="inter-list"></div>
+    </div>
+
+    <!-- INFOS -->
+    <div class="page" id="page-infos">
+      <div class="stitle">Infos Lumera</div><div class="gline"></div>
+      <div class="info-card">
+        <div class="ict">Tarifs</div>
+        <div class="info-row"><span class="ik">Paire standard</span><span style="font-weight:500">79 €</span></div>
+        <div class="info-row"><span class="ik">Phares très abîmés</span><span style="font-weight:500">100–120 €</span></div>
+        <div class="info-row"><span class="ik">Déplacement</span><span style="font-weight:500">Inclus (Liège)</span></div>
+      </div>
+      <div class="info-card">
+        <div class="ict">Équipe</div>
+        <div class="info-row"><span class="ik">Wolfgang</span><span style="font-weight:500">0492 69 28 96</span></div>
+        <div class="info-row"><span class="ik">Zone</span><span style="font-weight:500">Liège & alentours</span></div>
+      </div>
+      <div class="info-card"><div class="ict">Check-list intervention</div><div id="checklist"></div></div>
+      <div class="info-card"><div class="ict">Notes internes</div><div class="notebox">Toujours photographier l'état des phares avant et après. Confirmer le prix final après inspection sur place.</div></div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="showP('dashboard',this)">
+      <svg class="nav-svg" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard
+    </button>
+    <button class="nav-item" onclick="showP('calendar',this)">
+      <svg class="nav-svg" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z"/></svg>Calendrier
+    </button>
+    <button class="nav-item" onclick="showP('interventions',this)">
+      <div class="nav-rel">
+        <svg class="nav-svg" viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>
+        <div class="notif-dot" id="notif-dot"></div>
+      </div>
+      Interventions
+    </button>
+    <button class="nav-item" onclick="showP('infos',this)">
+      <svg class="nav-svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>Infos
+    </button>
+  </nav>
+</div>
+
+<!-- MODAL NOUVELLE INTERVENTION -->
+<div class="modal-overlay" id="m-inter" onclick="closeOut(event,'m-inter')">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="mtitle">Nouvelle intervention</div>
+    <div class="form-section">Informations client</div>
+    <div class="fg"><label class="fl">Client</label><input class="fi" id="ni-c" placeholder="Nom du client"></div>
+    <div class="fg"><label class="fl">Véhicule</label><input class="fi" id="ni-v" placeholder="Ex: BMW Série 3 — 2019"></div>
+    <div class="fg"><label class="fl">Adresse</label><input class="fi" id="ni-a" placeholder="Rue, ville"></div>
+    <div class="form-section">Planification</div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Date</label><input class="fi" id="ni-d" type="date"></div>
+      <div class="fg"><label class="fl">Heure</label><input class="fi" id="ni-t" type="time" value="09:00"></div>
+    </div>
+    <div class="form-section">Déplacement & Prix</div>
+    <div class="fg"><label class="fl">Déplacement</label>
+      <select class="fs" id="ni-dep"><option value="inclus">Inclus</option><option value="facturé">Facturé séparément</option><option value="gratuit">Gratuit (exception)</option></select>
+    </div>
+    <div class="fg"><label class="fl">Frais déplacement (€)</label><input class="fi" id="ni-dep-prix" type="number" value="0" min="0"></div>
+    <div class="fg"><label class="fl">État phares</label>
+      <select class="fs" id="ni-s"><option value="standard">Standard</option><option value="bad">Très abîmés</option></select>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Prix phares (€)</label><input class="fi" id="ni-p" type="number" value="79" min="0"></div>
+      <div class="fg"><label class="fl">Total (€)</label><input class="fi" id="ni-total" type="number" readonly placeholder="—"></div>
+    </div>
+    <div class="form-section">Notes</div>
+    <div class="fg"><input class="fi" id="ni-n" placeholder="Infos utiles..."></div>
+    <div class="mactions">
+      <button class="bcancel" onclick="closeM('m-inter')">Annuler</button>
+      <button class="bsave" id="btn-save-inter" onclick="saveInter()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PHOTOS AVANT -->
+<div class="modal-overlay" id="m-avant" onclick="closeOut(event,'m-avant')">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="mtitle">Photos AVANT</div>
+    <div class="msub" id="avant-sub">État des phares avant intervention.</div>
+    <div class="upload-zone" onclick="document.getElementById('file-avant').click()">
+      <div class="upload-icon">📷</div>
+      <div class="upload-label">Appuyer pour ajouter<br><span>photos ou vidéos</span></div>
+    </div>
+    <input type="file" id="file-avant" accept="image/*,video/*" multiple style="display:none" onchange="handleFiles(event,'avant')">
+    <div class="preview-grid" id="prev-avant"></div>
+    <div class="mactions">
+      <button class="bcancel" onclick="closeM('m-avant')">Annuler</button>
+      <button class="bsave" onclick="confirmAvant()">Commencer →</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PHOTOS APRÈS -->
+<div class="modal-overlay" id="m-apres" onclick="closeOut(event,'m-apres')">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="mtitle">Photos APRÈS</div>
+    <div class="msub" id="apres-sub">Résultat après intervention.</div>
+    <div class="upload-zone" onclick="document.getElementById('file-apres').click()">
+      <div class="upload-icon">✨</div>
+      <div class="upload-label">Appuyer pour ajouter<br><span>photos ou vidéos</span></div>
+    </div>
+    <input type="file" id="file-apres" accept="image/*,video/*" multiple style="display:none" onchange="handleFiles(event,'apres')">
+    <div class="preview-grid" id="prev-apres"></div>
+    <div class="mactions">
+      <button class="bcancel" onclick="closeM('m-apres')">Passer</button>
+      <button class="bsave" onclick="confirmApres()">Terminer ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- FIREBASE SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDwS_6ootrFEGUnuE9UrjbOIduQR9ScRtE",
+  authDomain: "lumera-b0dd6.firebaseapp.com",
+  projectId: "lumera-b0dd6",
+  storageBucket: "lumera-b0dd6.firebasestorage.app",
+  messagingSenderId: "505865456021",
+  appId: "1:505865456021:web:a66e05d4bbc70fd5d14e9c"
+};
+
+const ADMIN_UID = 'wTDpsM4KGVWvqoqAXzc7kHF6TKi2';
+const USER_NAMES = {
+  'wTDpsM4KGVWvqoqAXzc7kHF6TKi2': 'Wolfgang',
+  'DgKRGxRjNCVaPxw1NJg6XpPQegk2': 'Zalimkhan'
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let CU_UID = '';
+let CU_NAME = '';
+let calDate = new Date();
+let selDay = null;
+let activeId = null;
+let pendingFiles = { avant: [], apres: [] };
+let unsubInterventions = null;
+let unsubCalendar = null;
+let unsubDelRequests = null;
+let localInterventions = [];
+let localCalEvents = [];
+let localDelRequests = [];
+
+function isAdmin() { return CU_UID === ADMIN_UID; }
+function setSyncState(state) {
+  const dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot' + (state === 'syncing' ? ' syncing' : state === 'error' ? ' error' : '');
+  dot.title = state === 'syncing' ? 'Synchronisation...' : state === 'error' ? 'Erreur de sync' : 'Synchronisé';
+}
+
+// AUTH
+onAuthStateChanged(auth, user => {
+  if (user) {
+    CU_UID = user.uid;
+    CU_NAME = USER_NAMES[user.uid] || user.email;
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-shell').style.display = 'flex';
+    document.getElementById('welmsg').textContent = CU_NAME;
+    document.getElementById('ubadge').textContent = CU_NAME[0];
+    document.getElementById('admin-badge').style.display = isAdmin() ? 'inline-flex' : 'none';
+    const t = new Date();
+    document.getElementById('ni-d').valueAsDate = t;
+    setupPriceCalc();
+    startListeners();
+    renderChecklist();
+  } else {
+    CU_UID = ''; CU_NAME = '';
+    stopListeners();
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app-shell').style.display = 'none';
+  }
+});
+
+async function doLogin() {
+  const email = document.getElementById('lu').value.trim();
+  const pass = document.getElementById('lp').value;
+  const err = document.getElementById('lerr');
+  const btn = document.getElementById('lbtn');
+  err.textContent = '';
+  btn.disabled = true; btn.textContent = 'Connexion...';
+  try {
+    const persistence = document.getElementById('remember').checked ? browserLocalPersistence : browserSessionPersistence;
+    await setPersistence(auth, persistence);
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    err.textContent = 'Email ou mot de passe incorrect.';
+    btn.disabled = false; btn.textContent = 'Connexion';
+  }
+}
+window.doLogin = doLogin;
+
+async function doLogout() {
+  if (!confirm('Se déconnecter ?')) return;
+  stopListeners();
+  await signOut(auth);
+}
+window.doLogout = doLogout;
+
+// REALTIME LISTENERS
+function startListeners() {
+  // Interventions de l'utilisateur courant
+  const qI = query(collection(db, 'interventions'), where('uid', '==', CU_UID), orderBy('createdAt', 'desc'));
+  unsubInterventions = onSnapshot(qI, snap => {
+    localInterventions = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+    setSyncState('ok');
+    renderDash();
+    renderInter();
+  }, () => setSyncState('error'));
+
+  // Calendrier partagé
+  const qC = query(collection(db, 'calendar'), orderBy('date', 'asc'));
+  unsubCalendar = onSnapshot(qC, snap => {
+    localCalEvents = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+    renderCal();
+  });
+
+  // Demandes de suppression (partagées)
+  const qD = query(collection(db, 'delRequests'));
+  unsubDelRequests = onSnapshot(qD, snap => {
+    localDelRequests = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+    renderDash();
+    renderInter();
+    // Notif dot
+    const hasPending = isAdmin() && localDelRequests.length > 0;
+    document.getElementById('notif-dot').style.display = hasPending ? 'block' : 'none';
+  });
+}
+
+function stopListeners() {
+  if (unsubInterventions) { unsubInterventions(); unsubInterventions = null; }
+  if (unsubCalendar) { unsubCalendar(); unsubCalendar = null; }
+  if (unsubDelRequests) { unsubDelRequests(); unsubDelRequests = null; }
+}
+
+// PRICE CALC
+function setupPriceCalc() {
+  const p = document.getElementById('ni-p');
+  const d = document.getElementById('ni-dep-prix');
+  const t = document.getElementById('ni-total');
+  function calc() { t.value = (parseInt(p.value) || 0) + (parseInt(d.value) || 0); }
+  p.oninput = calc; d.oninput = calc; calc();
+}
+
+// SAVE INTERVENTION
+async function saveInter() {
+  const btn = document.getElementById('btn-save-inter');
+  btn.disabled = true; btn.textContent = 'Enregistrement...';
+  setSyncState('syncing');
+  const client = document.getElementById('ni-c').value.trim() || 'Client';
+  const date = document.getElementById('ni-d').value;
+  const time = document.getElementById('ni-t').value;
+  const prixPhares = parseInt(document.getElementById('ni-p').value) || 79;
+  const prixDep = parseInt(document.getElementById('ni-dep-prix').value) || 0;
+  const obj = {
+    uid: CU_UID,
+    createdBy: CU_NAME,
+    client, vehicle: document.getElementById('ni-v').value.trim(),
+    date, time,
+    address: document.getElementById('ni-a').value.trim(),
+    state: document.getElementById('ni-s').value,
+    deplacement: document.getElementById('ni-dep').value,
+    prixDeplacement: prixDep,
+    price: prixPhares,
+    total: prixPhares + prixDep,
+    notes: document.getElementById('ni-n').value,
+    status: 'pending',
+    photosAvant: [], photosApres: [],
+    createdAt: serverTimestamp()
+  };
+  try {
+    const ref = await addDoc(collection(db, 'interventions'), obj);
+    // Ajouter au calendrier partagé
+    await addDoc(collection(db, 'calendar'), {
+      interRef: ref.id,
+      title: '🔧 ' + client,
+      date, time,
+      note: (obj.vehicle || '') + (obj.address ? ' · ' + obj.address : ''),
+      by: CU_NAME,
+      byUid: CU_UID
+    });
+    closeM('m-inter');
+    ['ni-c', 'ni-v', 'ni-a', 'ni-n'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('ni-p').value = '79';
+    document.getElementById('ni-dep-prix').value = '0';
+    document.getElementById('ni-total').value = '';
+    setSyncState('ok');
+  } catch(e) {
+    setSyncState('error');
+    alert('Erreur d\'enregistrement. Vérifiez votre connexion.');
+  }
+  btn.disabled = false; btn.textContent = 'Enregistrer';
+}
+window.saveInter = saveInter;
+
+// SUPPRESSION
+window.requestDelete = async function(firestoreId, client, date, vehicle) {
+  const already = localDelRequests.find(r => r.interId === firestoreId);
+  if (already) { alert('Demande déjà envoyée. En attente de Wolfgang.'); return; }
+  await addDoc(collection(db, 'delRequests'), {
+    interId: firestoreId, client, date, vehicle: vehicle || '—',
+    requestedBy: CU_NAME, requestedByUid: CU_UID,
+    requestedAt: serverTimestamp()
+  });
+  alert('Demande envoyée à Wolfgang pour validation.');
+};
+
+window.adminDelete = async function(delReqFirestoreId, interFirestoreId, calInterRef) {
+  if (!confirm('Confirmer la suppression définitive ?')) return;
+  setSyncState('syncing');
+  try {
+    await deleteDoc(doc(db, 'interventions', interFirestoreId));
+    // Supprimer l'entrée calendrier liée
+    const calSnap = await getDocs(query(collection(db, 'calendar'), where('interRef', '==', interFirestoreId)));
+    for (const d of calSnap.docs) await deleteDoc(doc(db, 'calendar', d.id));
+    await deleteDoc(doc(db, 'delRequests', delReqFirestoreId));
+    setSyncState('ok');
+  } catch(e) { setSyncState('error'); alert('Erreur lors de la suppression.'); }
+};
+
+window.denyDelete = async function(delReqFirestoreId) {
+  await deleteDoc(doc(db, 'delRequests', delReqFirestoreId));
+};
+
+window.directDelete = async function(firestoreId) {
+  if (!confirm('Supprimer cette intervention ?')) return;
+  setSyncState('syncing');
+  try {
+    await deleteDoc(doc(db, 'interventions', firestoreId));
+    const calSnap = await getDocs(query(collection(db, 'calendar'), where('interRef', '==', firestoreId)));
+    for (const d of calSnap.docs) await deleteDoc(doc(db, 'calendar', d.id));
+    // Nettoyer demande si existante
+    const drSnap = await getDocs(query(collection(db, 'delRequests'), where('interId', '==', firestoreId)));
+    for (const d of drSnap.docs) await deleteDoc(doc(db, 'delRequests', d.id));
+    setSyncState('ok');
+  } catch(e) { setSyncState('error'); alert('Erreur lors de la suppression.'); }
+};
+
+// STATUS UPDATE
+window.updateStatus = async function(firestoreId, newStatus) {
+  setSyncState('syncing');
+  try {
+    await updateDoc(doc(db, 'interventions', firestoreId), { status: newStatus });
+    setSyncState('ok');
+  } catch(e) { setSyncState('error'); }
+};
+
+// PHOTOS
+window.startInter = function(firestoreId, client) {
+  activeId = firestoreId;
+  document.getElementById('avant-sub').textContent = client + ' — État avant intervention.';
+  pendingFiles.avant = []; document.getElementById('prev-avant').innerHTML = '';
+  openM('m-avant');
+};
+window.finishInter = function(firestoreId, client) {
+  activeId = firestoreId;
+  document.getElementById('apres-sub').textContent = client + ' — Résultat après intervention.';
+  pendingFiles.apres = []; document.getElementById('prev-apres').innerHTML = '';
+  openM('m-apres');
+};
+window.confirmAvant = async function() {
+  if (!activeId) return;
+  await updateStatus(activeId, 'started');
+  closeM('m-avant'); pendingFiles.avant = [];
+};
+window.confirmApres = async function() {
+  if (!activeId) return;
+  await updateStatus(activeId, 'done');
+  closeM('m-apres'); pendingFiles.apres = []; activeId = null;
+};
+window.handleFiles = function(e, type) {
+  Array.from(e.target.files).forEach(file => {
+    const url = URL.createObjectURL(file);
+    const isVid = file.type.startsWith('video');
+    pendingFiles[type].push({ url, isVid });
+    const grid = document.getElementById('prev-' + type);
+    const div = document.createElement('div'); div.className = 'prev-item';
+    if (isVid) {
+      const v = document.createElement('video'); v.src = url;
+      v.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--border)';
+      div.appendChild(v);
+      const b = document.createElement('span'); b.className = 'type-badge'; b.textContent = 'Vidéo'; div.appendChild(b);
+    } else {
+      const img = document.createElement('img'); img.src = url;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--border)';
+      div.appendChild(img);
+    }
+    const del = document.createElement('button'); del.className = 'prev-del'; del.textContent = '×';
+    const idx = pendingFiles[type].length - 1;
+    del.onclick = () => { pendingFiles[type].splice(idx, 1); div.remove(); };
+    div.appendChild(del); grid.appendChild(div);
+  });
+  e.target.value = '';
+};
+
+// RENDER
+function renderDash() {
+  const now = new Date(); const m = now.getMonth(); const y = now.getFullYear();
+  const ts = fmtD(now);
+  const tm = localInterventions.filter(i => { const d = new Date(i.date); return d.getMonth() === m && d.getFullYear() === y; });
+  const rev = tm.reduce((a, b) => a + (b.total || b.price || 0), 0);
+  document.getElementById('s-count').textContent = tm.length;
+  document.getElementById('s-rev').textContent = rev;
+  document.getElementById('s-today').textContent = localCalEvents.filter(e => e.date === ts).length;
+  document.getElementById('s-avg').textContent = tm.length ? Math.round(rev / tm.length) : 79;
+
+  // Delete requests (admin)
+  const sect = document.getElementById('del-requests-section');
+  if (isAdmin() && localDelRequests.length > 0) {
+    sect.style.display = 'block';
+    document.getElementById('del-requests-list').innerHTML = localDelRequests.map(r => `
+      <div class="del-request">
+        <div class="dr-title">Supprimer : ${r.client}</div>
+        <div class="dr-sub">${formatDate(r.date)} · ${r.vehicle} · Demande de ${r.requestedBy}</div>
+        <div class="dr-actions">
+          <button class="dr-approve" onclick="adminDelete('${r.firestoreId}','${r.interId}')">Confirmer</button>
+          <button class="dr-deny" onclick="denyDelete('${r.firestoreId}')">Refuser</button>
+        </div>
+      </div>`).join('');
+  } else sect.style.display = 'none';
+
+  const el = document.getElementById('dash-recent');
+  const recent = localInterventions.slice(0, 4);
+  if (!recent.length) { el.innerHTML = '<div style="color:var(--text2);font-size:14px;text-align:center;padding:20px 0">Aucune intervention enregistrée</div>'; return; }
+  el.innerHTML = recent.map(i => iCard(i, true)).join('');
+}
+
+function renderInter(f = 'all') {
+  let list = f === 'all' ? localInterventions : localInterventions.filter(i => i.status === f);
+  const el = document.getElementById('inter-list');
+  if (!list.length) { el.innerHTML = '<div style="color:var(--text2);font-size:14px;text-align:center;padding:20px 0">Aucune intervention</div>'; return; }
+  el.innerHTML = list.map(i => iCard(i, false)).join('');
+}
+
+function iCard(i, compact) {
+  const isPendingDel = localDelRequests.some(r => r.interId === i.firestoreId);
+  const sb = i.status === 'done' ? `<span class="badge badge-done">✓ Terminée</span>` : i.status === 'started' ? `<span class="badge badge-started">En cours</span>` : `<span class="badge">En attente</span>`;
+  const ab = compact ? '' : (i.status === 'pending' ? `<button class="btn-sm btn-start" onclick="startInter('${i.firestoreId}','${i.client}')">Commencer</button>` : i.status === 'started' ? `<button class="btn-sm btn-finish" onclick="finishInter('${i.firestoreId}','${i.client}')">Terminer</button>` : '');
+  let delBtn = '';
+  if (!compact) {
+    if (isAdmin()) delBtn = `<button class="btn-sm btn-del" onclick="directDelete('${i.firestoreId}')">Supprimer</button>`;
+    else if (isPendingDel) delBtn = `<button class="btn-sm btn-del-pending" disabled>En attente admin</button>`;
+    else delBtn = `<button class="btn-sm btn-del" onclick="requestDelete('${i.firestoreId}','${i.client}','${i.date}','${i.vehicle||''}')">Supprimer</button>`;
+  }
+  const sub = [i.address, i.vehicle].filter(Boolean).join(' · ');
+  const total = i.total || i.price || 0;
+  const depInfo = i.deplacement && i.deplacement !== 'inclus' ? `<span class="badge">Dépl. ${i.prixDeplacement || 0}€</span>` : '';
+  return `<div class="icard">
+    ${isPendingDel && !compact ? `<div class="pending-banner">⏳ Suppression en attente de validation admin</div>` : ''}
+    <div class="icard-head">
+      <div class="icard-left"><div class="ic-name">${i.client}</div>${sub ? `<div class="ic-sub">${sub}</div>` : ''}</div>
+      <div class="icard-right"><div class="ic-price">${total}€</div><div class="ic-actions">${ab}${delBtn}</div></div>
+    </div>
+    <div class="ic-meta"><span>${formatDate(i.date)} ${i.time}</span>${sb}<span class="badge">${i.state === 'bad' ? 'Très abîmés' : 'Standard'}</span>${depInfo}</div>
+    ${i.notes && !compact ? `<div style="font-size:12px;color:var(--text2);margin-top:6px">${i.notes}</div>` : ''}
+  </div>`;
+}
+
+window.filterI = function(f, el) { document.querySelectorAll('.chip').forEach(c => c.classList.remove('active')); el.classList.add('active'); renderInter(f); };
+
+function renderCal() {
+  const y = calDate.getFullYear(); const m = calDate.getMonth();
+  const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  document.getElementById('cal-label').textContent = MONTHS[m] + ' ' + y;
+  const grid = document.getElementById('cal-grid');
+  const days = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
+  let html = days.map(d => `<div class="cal-dh">${d}</div>`).join('');
+  const first = new Date(y, m, 1); const sd = (first.getDay() + 6) % 7;
+  const dim = new Date(y, m + 1, 0).getDate(); const pdim = new Date(y, m, 0).getDate();
+  const tn = new Date(); const ts = fmtDate(tn.getFullYear(), tn.getMonth() + 1, tn.getDate());
+  for (let i = 0; i < sd; i++) html += `<div class="cal-day other">${pdim - sd + 1 + i}</div>`;
+  for (let d = 1; d <= dim; d++) {
+    const ds = fmtDate(y, m + 1, d);
+    const dayEvts = localCalEvents.filter(e => e.date === ds);
+    const hasW = dayEvts.some(e => e.by === 'Wolfgang');
+    const hasZ = dayEvts.some(e => e.by === 'Zalimkhan');
+    let cls = 'cal-day' + (ds === ts ? ' today' : '') + (selDay === ds ? ' sel' : '');
+    if (hasW && hasZ) cls += ' has-ev-both';
+    else if (hasW) cls += ' has-ev-w';
+    else if (hasZ) cls += ' has-ev-z';
+    html += `<div class="${cls}" onclick="selDayFn('${ds}')">${d}</div>`;
+  }
+  const rem = (sd + dim) % 7 === 0 ? 0 : 7 - (sd + dim) % 7;
+  for (let i = 1; i <= rem; i++) html += `<div class="cal-day other">${i}</div>`;
+  grid.innerHTML = html;
+  renderDayEvs(selDay || ts);
+}
+
+function renderDayEvs(date) {
+  const evts = localCalEvents.filter(e => e.date === date);
+  const el = document.getElementById('cal-events');
+  if (!evts.length) { el.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:16px">Aucune intervention ce jour</div>'; return; }
+  el.innerHTML = evts.map(e => {
+    const uc = e.by === 'Wolfgang' ? 'w' : 'z';
+    return `<div class="cev cev-${uc}">
+      <div class="ce-time-${uc}">${e.time}</div>
+      <div class="ce-name">${e.title}</div>
+      ${e.note ? `<div class="ce-detail">${e.note}</div>` : ''}
+      <span class="user-pill pill-${uc}">${e.by}</span>
+    </div>`;
+  }).join('');
+}
+
+window.selDayFn = function(d) { selDay = d; renderCal(); };
+window.chMonth = function(dir) { calDate.setMonth(calDate.getMonth() + dir); renderCal(); };
+
+function renderChecklist() {
+  const items = ['Produits de polissage','Protecteur UV','Appareil photo (avant/après)','Facture client','Carte de visite Lumera'];
+  document.getElementById('checklist').innerHTML = items.map(it => `
+    <div class="info-row" style="cursor:pointer" onclick="toggleCheck(this)">
+      <span style="color:var(--text2);font-size:14px">${it}</span>
+      <span style="font-size:18px;color:var(--text2)" class="ck">○</span>
+    </div>`).join('');
+}
+window.toggleCheck = function(row) { const ck = row.querySelector('.ck'); const on = ck.textContent === '✓'; ck.textContent = on ? '○' : '✓'; ck.style.color = on ? 'var(--text2)' : 'var(--gold)'; };
+
+window.showP = function(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'dashboard') renderDash();
+  if (name === 'calendar') renderCal();
+  if (name === 'interventions') renderInter();
+};
+window.openM = function(id) { document.getElementById(id).classList.add('open'); };
+window.closeM = function(id) { document.getElementById(id).classList.remove('open'); };
+window.closeOut = function(e, id) { if (e.target.classList.contains('modal-overlay')) closeM(id); };
+
+function fmtDate(y, m, d) { return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function fmtD(dt) { return fmtDate(dt.getFullYear(), dt.getMonth() + 1, dt.getDate()); }
+function formatDate(s) { if (!s) return ''; const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; }
+</script>
+</body>
+</html>
