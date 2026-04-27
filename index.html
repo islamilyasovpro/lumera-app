@@ -620,21 +620,135 @@ window.finishInter = function(firestoreId, client) {
   pendingFiles.apres = []; document.getElementById('prev-apres').innerHTML = '';
   openM('m-apres');
 };
+// R2 CONFIG
+const R2_ENDPOINT = 'https://109f9c4aeeb9ecb6a70d9a6066f28e7c.r2.cloudflarestorage.com';
+const R2_BUCKET = 'lumera-media';
+const R2_ACCESS_KEY = 'ca0d239daf6234ef23d7eff300b1cc74';
+const R2_SECRET_KEY = '6afce291b768b0a532074f36428ef382a68e41c14b438f1367fdc952b6971b7c';
+const R2_PUBLIC_URL = 'https://109f9c4aeeb9ecb6a70d9a6066f28e7c.r2.cloudflarestorage.com/' + R2_BUCKET;
+
+// Upload a file to R2 via signed URL approach using fetch + HMAC
+async function uploadToR2(file, folder) {
+  const key = `${folder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+  const url = `${R2_ENDPOINT}/${R2_BUCKET}/${key}`;
+  
+  // Build AWS Signature V4
+  const now = new Date();
+  const dateStr = now.toISOString().replace(/[:-]|\.\d{3}/g,'').slice(0,15) + 'Z';
+  const dateShort = dateStr.slice(0,8);
+  const region = 'auto';
+  const service = 's3';
+
+  const payloadHash = 'UNSIGNED-PAYLOAD';
+  const headers = {
+    'host': new URL(R2_ENDPOINT).host,
+    'x-amz-content-sha256': payloadHash,
+    'x-amz-date': dateStr,
+    'content-type': file.type || 'application/octet-stream'
+  };
+
+  const signedHeaders = Object.keys(headers).sort().join(';');
+  const canonicalHeaders = Object.keys(headers).sort().map(k => k+':'+headers[k]).join('\n') + '\n';
+  const canonicalRequest = [
+    'PUT', '/' + R2_BUCKET + '/' + key, '',
+    canonicalHeaders, signedHeaders, payloadHash
+  ].join('\n');
+
+  const scope = `${dateShort}/${region}/${service}/aws4_request`;
+  const stringToSign = ['AWS4-HMAC-SHA256', dateStr, scope,
+    await sha256hex(canonicalRequest)].join('\n');
+
+  const signingKey = await getSigningKey(R2_SECRET_KEY, dateShort, region, service);
+  const signature = await hmacHex(signingKey, stringToSign);
+
+  const authHeader = `AWS4-HMAC-SHA256 Credential=${R2_ACCESS_KEY}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { ...headers, 'Authorization': authHeader },
+    body: file
+  });
+
+  if (!res.ok) throw new Error('Upload R2 failed: ' + res.status);
+  return { key, url: `${R2_PUBLIC_URL}/${key}`, type: file.type.startsWith('video') ? 'video' : 'image', name: file.name };
+}
+
+async function sha256hex(message) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+async function hmacHex(key, message) {
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+async function hmacKey(key, message) {
+  const k = typeof key === 'string' ? new TextEncoder().encode('AWS4' + key) : key;
+  const imported = await crypto.subtle.importKey('raw', k instanceof CryptoKey ? await crypto.subtle.exportKey('raw',k) : k, {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', imported, new TextEncoder().encode(message));
+  return await crypto.subtle.importKey('raw', sig, {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
+}
+async function getSigningKey(secret, date, region, service) {
+  let key = await crypto.subtle.importKey('raw', new TextEncoder().encode('AWS4' + secret), {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
+  for (const msg of [date, region, service, 'aws4_request']) {
+    const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(msg));
+    key = await crypto.subtle.importKey('raw', sig, {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
+  }
+  return key;
+}
+
 window.confirmAvant = async function() {
   if (!activeId) return;
-  await updateStatus(activeId, 'started');
-  closeM('m-avant'); pendingFiles.avant = [];
+  const btn = document.querySelector('#m-avant .bsave');
+  btn.disabled = true; btn.textContent = 'Upload en cours...';
+  setSyncState('syncing');
+  try {
+    const uploaded = [];
+    for (const f of pendingFiles.avant) {
+      const result = await uploadToR2(f.file, `avant/${activeId}`);
+      uploaded.push(result);
+    }
+    await updateDoc(doc(db, 'interventions', activeId), {
+      status: 'started',
+      photosAvant: uploaded
+    });
+    setSyncState('ok');
+    closeM('m-avant'); pendingFiles.avant = [];
+  } catch(e) {
+    setSyncState('error');
+    alert('Erreur upload: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = 'Commencer →';
 };
+
 window.confirmApres = async function() {
   if (!activeId) return;
-  await updateStatus(activeId, 'done');
-  closeM('m-apres'); pendingFiles.apres = []; activeId = null;
+  const btn = document.querySelector('#m-apres .bsave');
+  btn.disabled = true; btn.textContent = 'Upload en cours...';
+  setSyncState('syncing');
+  try {
+    const uploaded = [];
+    for (const f of pendingFiles.apres) {
+      const result = await uploadToR2(f.file, `apres/${activeId}`);
+      uploaded.push(result);
+    }
+    await updateDoc(doc(db, 'interventions', activeId), {
+      status: 'done',
+      photosApres: uploaded
+    });
+    setSyncState('ok');
+    closeM('m-apres'); pendingFiles.apres = []; activeId = null;
+  } catch(e) {
+    setSyncState('error');
+    alert('Erreur upload: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = 'Terminer ✓';
 };
+
 window.handleFiles = function(e, type) {
   Array.from(e.target.files).forEach(file => {
     const url = URL.createObjectURL(file);
     const isVid = file.type.startsWith('video');
-    pendingFiles[type].push({ url, isVid });
+    pendingFiles[type].push({ url, isVid, file });
     const grid = document.getElementById('prev-' + type);
     const div = document.createElement('div'); div.className = 'prev-item';
     if (isVid) {
