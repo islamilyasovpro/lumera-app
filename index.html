@@ -462,7 +462,7 @@ window.doLogout = doLogout;
 // REALTIME LISTENERS
 function startListeners() {
   // Interventions de l'utilisateur courant
-  const qI = query(collection(db, 'interventions'), where('uid', '==', CU_UID), orderBy('createdAt', 'desc'));
+  const qI = query(collection(db, 'interventions'), where('uid', '==', CU_UID));
   unsubInterventions = onSnapshot(qI, snap => {
     localInterventions = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
     setSyncState('ok');
