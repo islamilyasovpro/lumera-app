@@ -309,6 +309,14 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
         </div>
         <div class="info-row"><span class="ik">Zone Zalimkhan</span><span style="font-weight:500">Eupen & alentours</span></div>
       </div>
+      <div class="info-card">
+        <div class="ict">Notifications</div>
+        <div class="info-row">
+          <span class="ik">Recevoir les alertes</span>
+          <button onclick="requestNotifPermission()" style="background:rgba(212,160,23,0.15);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--gold);font-family:var(--ff);cursor:pointer">Activer</button>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:6px">Active les alertes pour les nouvelles interventions et demandes logistique.</div>
+      </div>
       <div class="info-card"><div class="ict">Check-list intervention</div><div id="checklist"></div></div>
       <div class="info-card"><div class="ict">Notes internes</div><div class="notebox">Toujours photographier l'état des phares avant et après. Confirmer le prix final après inspection sur place.</div></div>
 
@@ -489,6 +497,9 @@ onAuthStateChanged(auth, user => {
     CU_UID = user.uid; CU_NAME = USER_NAMES[user.uid] || user.email;
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('app-shell').style.display = 'flex';
+    window.scrollTo(0,0);
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
     document.getElementById('welmsg').textContent = CU_NAME;
     document.getElementById('ubadge').textContent = CU_NAME[0];
     document.getElementById('admin-badge').style.display = isAdmin() ? 'inline-flex' : 'none';
@@ -496,7 +507,7 @@ onAuthStateChanged(auth, user => {
     setupPriceCalc();
     startListeners();
     renderChecklist();
-    setTimeout(requestNotifPermission, 3000);
+    // notifications activées manuellement depuis Infos
   } else {
     CU_UID = ''; CU_NAME = '';
     stopListeners();
@@ -528,10 +539,12 @@ window.doLogout = async function() {
 };
 
 // PUSH NOTIFICATIONS
-async function requestNotifPermission() {
-  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
-  if (Notification.permission === 'default') await Notification.requestPermission();
-}
+window.requestNotifPermission = async function() {
+  if (!('Notification' in window)) { alert('Les notifications ne sont pas supportées sur ce navigateur.'); return; }
+  const result = await Notification.requestPermission();
+  if (result === 'granted') alert('✅ Notifications activées !');
+  else alert('❌ Notifications refusées. Tu peux les activer dans les réglages Safari.');
+};
 
 function showLocalNotif(title, body) {
   if (Notification.permission === 'granted') {
