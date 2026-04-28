@@ -7,1167 +7,1516 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lumera">
-<title>Lumera App</title>
+<title>Lumera</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{
-  --gold:#D4A017;--bg:#0A0A0A;--bg2:#141414;--bg3:#1E1E1E;
-  --text:#F5F0E8;--text2:#A09880;--border:rgba(212,160,23,0.25);
-  --red:#e24b4a;--green:#7cc92a;--w-color:#E8242A;--z-color:#00C8E0;
-  --radius:12px;--ff:'DM Sans',system-ui,sans-serif;--ff2:'Bebas Neue',sans-serif;
+/* ─── RESET & TOKENS ─────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --gold: #D4A017;
+  --bg:   #0A0A0A;
+  --bg2:  #141414;
+  --bg3:  #1E1E1E;
+  --text:  #F5F0E8;
+  --text2: #A09880;
+  --border: rgba(212,160,23,.25);
+  --red:   #E24B4A;
+  --green: #7CC92A;
+  --w:     #E8242A;
+  --z:     #00C8E0;
+  --r: 12px;
+  --ff:  'DM Sans', system-ui, sans-serif;
+  --ff2: 'Bebas Neue', sans-serif;
 }
-body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100vh;max-width:420px;margin:0 auto;overflow-x:hidden}
 
-/* LOADING */
-#loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;padding:2rem}
-.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden; /* App shell handles its own scroll */
+  background: var(--bg);
+  font-family: var(--ff);
+  color: var(--text);
+}
 
-/* LOGIN */
-#login-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
-.login-form{width:100%;max-width:300px;display:flex;flex-direction:column;gap:12px}
-.li{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;color:var(--text);font-family:var(--ff);font-size:15px;outline:none;width:100%}
-.li:focus{border-color:var(--gold)}.li::placeholder{color:var(--text2)}
-.lbtn{background:var(--gold);border:none;border-radius:var(--radius);padding:15px;color:#000;font-family:var(--ff);font-size:15px;font-weight:600;cursor:pointer}
-.lbtn:disabled{opacity:0.6}
-.lerr{color:var(--red);font-size:13px;text-align:center;min-height:18px}
-.remrow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer}
-.remrow input{width:16px;height:16px;accent-color:var(--gold)}
+/* ─── SCREEN SYSTEM ─────────────────────────────────────────── */
+/* Each screen occupies the full viewport, stacked via z-index.
+   Only the active screen is visible. No layout bleed possible. */
+.screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.screen.active {
+  opacity: 1;
+  pointer-events: all;
+  z-index: 10;
+}
 
-/* APP SHELL */
-#app-shell{display:none;flex-direction:column;min-height:100vh}
-.top-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:6px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.admin-badge{background:rgba(232,36,42,0.15);border:1px solid rgba(232,36,42,0.4);color:var(--w-color);font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
-.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block}
-.sync-dot.syncing{background:var(--gold);animation:pulse 1s infinite}
-.sync-dot.error{background:var(--red)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
-.content{flex:1;padding:16px;padding-bottom:80px}
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:var(--bg2);border-top:1px solid var(--border);display:flex;z-index:100}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;cursor:pointer;border:none;background:transparent;color:var(--text2);font-family:var(--ff);font-size:10px}
-.nav-item.active{color:var(--gold)}
-.nav-svg{width:20px;height:20px;fill:currentColor}
-.nav-rel{position:relative;display:inline-flex}
-.notif-dot{position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;background:var(--red);border:2px solid var(--bg2);display:none}
+/* ─── LOADING ────────────────────────────────────────────────── */
+#screen-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-/* PAGES */
-.page{display:none}.page.active{display:block}
-.stitle{font-family:var(--ff2);font-size:1.6rem;letter-spacing:0.1em;margin-bottom:6px}
-.gline{width:40px;height:2px;background:var(--gold);margin-bottom:16px}
-.ssub{font-size:12px;color:var(--text2);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px}
+/* ─── LOGIN ─────────────────────────────────────────────────── */
+#screen-login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+.login-form { width: 100%; max-width: 300px; display: flex; flex-direction: column; gap: 12px; }
+.input {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  color: var(--text);
+  font-family: var(--ff);
+  font-size: 15px;
+  outline: none;
+}
+.input:focus { border-color: var(--gold); }
+.input::placeholder { color: var(--text2); }
+.input[readonly] { opacity: .6; }
+.btn-primary {
+  background: var(--gold);
+  border: none;
+  border-radius: var(--r);
+  padding: 15px;
+  color: #000;
+  font-family: var(--ff);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+.btn-primary:disabled { opacity: .5; cursor: default; }
+.error-text { color: var(--red); font-size: 13px; text-align: center; min-height: 18px; }
+.remember-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); cursor: pointer; }
+.remember-row input { width: 16px; height: 16px; accent-color: var(--gold); }
 
-/* STATS */
-.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
-.scard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
-.slabel{font-size:11px;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px}
-.sval{font-family:var(--ff2);font-size:2rem;color:var(--gold)}
-.sunit{font-size:12px;color:var(--text2);margin-top:2px}
-.new-btn{width:100%;background:var(--gold);border:none;border-radius:var(--radius);padding:15px;color:#000;font-family:var(--ff);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px}
+/* ─── APP SHELL ─────────────────────────────────────────────── */
+#screen-app {
+  display: flex;
+  flex-direction: column;
+}
 
-/* DELETE REQUESTS */
-.del-request{background:rgba(232,36,42,0.08);border:1px solid rgba(232,36,42,0.3);border-radius:var(--radius);padding:14px;margin-bottom:10px}
-.dr-title{font-size:13px;font-weight:600;margin-bottom:4px}
-.dr-sub{font-size:12px;color:var(--text2);margin-bottom:10px}
-.dr-actions{display:flex;gap:8px}
-.dr-approve{background:rgba(226,75,74,0.15);border:1px solid rgba(226,75,74,0.4);border-radius:8px;padding:7px 14px;color:var(--red);font-family:var(--ff);font-size:12px;font-weight:600;cursor:pointer}
-.dr-deny{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--text2);font-family:var(--ff);font-size:12px;cursor:pointer}
+/* Top bar — fixed inside the app screen */
+.topbar {
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.admin-badge {
+  background: rgba(232,36,42,.15);
+  border: 1px solid rgba(232,36,42,.4);
+  color: var(--w);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+.sync-dot.busy  { background: var(--gold); animation: pulse 1s infinite; }
+.sync-dot.error { background: var(--red); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+.avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #000;
+  cursor: pointer;
+}
 
-/* INTERVENTION CARDS */
-.icard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;cursor:pointer;transition:border-color 0.15s}
-.icard:active{border-color:var(--gold)}
-.icard-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
-.icard-left{flex:1;min-width:0}
-.ic-name{font-weight:600;font-size:15px;margin-bottom:2px}
-.ic-sub{font-size:12px;color:var(--text2);line-height:1.5}
-.icard-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
-.ic-price{font-family:var(--ff2);font-size:1.3rem;color:var(--gold);line-height:1}
-.ic-meta{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--text2);align-items:center}
-.badge{background:rgba(212,160,23,0.12);color:var(--gold);font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);white-space:nowrap}
-.badge-done{background:rgba(124,201,42,0.12);color:var(--green);border-color:rgba(124,201,42,0.25)}
-.badge-started{background:rgba(212,160,23,0.15);color:var(--gold)}
-.badge-pending{background:rgba(160,152,128,0.12);color:var(--text2);border-color:rgba(160,152,128,0.2)}
-.creator-tag{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px}
-.creator-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+/* Page content area */
+.pages {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 16px 80px;
+}
 
-/* ACTION BUTTONS ROW */
-.action-row{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
-.btn-action{flex:1;min-width:80px;padding:8px 6px;border-radius:10px;cursor:pointer;font-family:var(--ff);font-size:12px;font-weight:500;border:1px solid;text-align:center;white-space:nowrap}
-.btn-start{background:rgba(212,160,23,0.12);border-color:var(--border);color:var(--gold)}
-.btn-finish{background:rgba(124,201,42,0.12);border-color:rgba(124,201,42,0.3);color:var(--green)}
-.btn-del{background:rgba(226,75,74,0.08);border-color:rgba(226,75,74,0.25);color:var(--red)}
-.btn-del-pending{background:transparent;border-color:rgba(226,75,74,0.15);color:rgba(226,75,74,0.4);cursor:default}
-.pending-banner{background:rgba(232,36,42,0.08);border:1px solid rgba(232,36,42,0.2);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--red);margin-bottom:8px}
+/* Bottom nav */
+.bottomnav {
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  display: flex;
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+}
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 4px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  font-family: var(--ff);
+  font-size: 10px;
+  position: relative;
+}
+.nav-btn.active { color: var(--gold); }
+.nav-btn svg { width: 20px; height: 20px; fill: currentColor; }
+.badge-dot {
+  position: absolute;
+  top: 6px; right: calc(50% - 14px);
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 2px solid var(--bg2);
+  display: none;
+}
+.badge-dot.show { display: block; }
 
-/* CALENDAR */
-.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.cal-nav{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;cursor:pointer;color:var(--text);font-family:var(--ff);font-size:16px}
-.cal-month{font-family:var(--ff2);font-size:1.4rem;letter-spacing:0.08em}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:10px}
-.cal-dh{text-align:center;font-size:10px;color:var(--text2);padding:5px 0;text-transform:uppercase}
-.cal-day{text-align:center;padding:8px 2px;border-radius:8px;font-size:13px;cursor:pointer;min-height:34px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative}
-.cal-day.today{background:rgba(212,160,23,0.15);color:var(--gold);font-weight:600}
-.cal-day.has-ev-w::after{content:'';display:block;width:5px;height:5px;border-radius:50%;background:var(--w-color)}
-.cal-day.has-ev-z::after{content:'';display:block;width:5px;height:5px;border-radius:50%;background:var(--z-color)}
-.cal-day.has-ev-both::before{content:'';display:block;width:5px;height:5px;border-radius:50%;background:var(--w-color);position:absolute;bottom:4px;left:calc(50% - 6px)}
-.cal-day.has-ev-both::after{content:'';display:block;width:5px;height:5px;border-radius:50%;background:var(--z-color);position:absolute;bottom:4px;left:calc(50% + 1px)}
-.cal-day.sel{background:var(--gold);color:#000;font-weight:600}
-.cal-day.other{color:var(--text2);opacity:0.35}
-.cal-legend{display:flex;gap:16px;margin-bottom:12px;justify-content:flex-end}
-.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
-.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.cev{border-radius:0 var(--radius) var(--radius) 0;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:opacity 0.15s}
-.cev:active{opacity:0.7}
-.cev-w{background:rgba(232,36,42,0.08);border-left:3px solid var(--w-color)}
-.cev-z{background:rgba(0,200,224,0.08);border-left:3px solid var(--z-color)}
-.ce-time-w{font-size:12px;color:var(--w-color);margin-bottom:3px;font-weight:500}
-.ce-time-z{font-size:12px;color:var(--z-color);margin-bottom:3px;font-weight:500}
-.ce-name{font-weight:500;font-size:14px}
-.ce-detail{font-size:12px;color:var(--text2);margin-top:2px}
-.user-pill{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:6px}
-.pill-w{background:rgba(232,36,42,0.15);color:var(--w-color);border:1px solid rgba(232,36,42,0.3)}
-.pill-z{background:rgba(0,200,224,0.12);color:var(--z-color);border:1px solid rgba(0,200,224,0.25)}
+/* ─── PAGES ─────────────────────────────────────────────────── */
+.page { display: none; }
+.page.active { display: block; }
 
-/* FILTERS */
-.filter-row{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
-.chip{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-size:12px;cursor:pointer;white-space:nowrap;color:var(--text2)}
-.chip.active{background:rgba(212,160,23,0.15);border-color:var(--gold);color:var(--gold)}
+.page-title { font-family: var(--ff2); font-size: 1.6rem; letter-spacing: .1em; margin-bottom: 6px; }
+.gold-bar { width: 40px; height: 2px; background: var(--gold); margin-bottom: 16px; }
+.section-label { font-size: 11px; color: var(--text2); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; }
 
-/* INFOS */
-.info-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
-.ict{font-size:11px;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px}
-.info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(212,160,23,0.08);font-size:14px}
-.info-row:last-child{border-bottom:none}
-.ik{color:var(--text2)}
-.notebox{background:var(--bg3);border-radius:10px;padding:14px;font-size:14px;line-height:1.7;color:var(--text2)}
-.call-btn{background:rgba(124,201,42,0.12);border:1px solid rgba(124,201,42,0.3);border-radius:20px;padding:3px 12px;font-size:12px;color:var(--green);font-family:var(--ff);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+/* Stats grid */
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; }
+.stat-label { font-size: 11px; color: var(--text2); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+.stat-value { font-family: var(--ff2); font-size: 2rem; color: var(--gold); }
+.stat-unit { font-size: 12px; color: var(--text2); margin-top: 2px; }
 
-/* LOGISTIQUE */
-.log-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px}
-.log-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
-.log-msg{font-size:14px;line-height:1.5;margin-bottom:6px}
-.log-meta{font-size:11px;color:var(--text2)}
-.log-status-new{background:rgba(232,36,42,0.12);color:var(--red);border:1px solid rgba(232,36,42,0.25);font-size:11px;padding:2px 8px;border-radius:20px}
-.log-status-done{background:rgba(124,201,42,0.12);color:var(--green);border:1px solid rgba(124,201,42,0.25);font-size:11px;padding:2px 8px;border-radius:20px}
-.log-input-area{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+/* ─── CARDS ─────────────────────────────────────────────────── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.card:active { border-color: var(--gold); }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.card-left { flex: 1; min-width: 0; }
+.card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.card-name { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+.card-sub { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.card-price { font-family: var(--ff2); font-size: 1.3rem; color: var(--gold); line-height: 1; }
+.card-meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--text2); align-items: center; }
+.creator { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); margin-top: 3px; }
+.creator-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
-/* MODALS */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;display:none;flex-direction:column;justify-content:flex-end;overflow:hidden}
-.modal-overlay.open{display:flex}
-.msheet{background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px 32px;max-height:92vh;overflow-y:auto;overflow-x:hidden;border-top:1px solid var(--border);width:100%}
-.mhandle{width:40px;height:4px;background:var(--bg3);border-radius:2px;margin:0 auto 16px}
-.mtitle{font-family:var(--ff2);font-size:1.4rem;letter-spacing:0.08em;margin-bottom:4px}
-.msub{font-size:13px;color:var(--text2);margin-bottom:16px}
-.form-section{font-size:11px;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-.fg{margin-bottom:13px}
-.fl{font-size:11px;color:var(--text2);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;display:block}
-.fi{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:var(--ff);font-size:14px;outline:none}
-.fi:focus{border-color:var(--gold)}
-.fi[readonly]{opacity:0.6}
-.fs{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:var(--ff);font-size:14px;outline:none;-webkit-appearance:none}
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.mactions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
-.bcancel{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;color:var(--text2);font-family:var(--ff);font-size:14px;cursor:pointer}
-.bsave{background:var(--gold);border:none;border-radius:10px;padding:14px;color:#000;font-family:var(--ff);font-size:14px;font-weight:600;cursor:pointer}
-.bsave:disabled{opacity:0.6;cursor:default}
-.ubadge{width:34px;height:34px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;cursor:pointer}
+/* ─── BADGES ─────────────────────────────────────────────────── */
+.badge {
+  font-size: 11px; padding: 3px 8px; border-radius: 20px; border: 1px solid; white-space: nowrap;
+  background: rgba(212,160,23,.12); color: var(--gold); border-color: var(--border);
+}
+.badge-done    { background: rgba(124,201,42,.12); color: var(--green); border-color: rgba(124,201,42,.25); }
+.badge-started { background: rgba(212,160,23,.15); color: var(--gold); border-color: var(--border); }
+.badge-pending { background: rgba(160,152,128,.1); color: var(--text2); border-color: rgba(160,152,128,.2); }
 
-/* FICHE DETAIL */
-.detail-section{margin-bottom:20px}
-.detail-label{font-size:11px;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px}
-.detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(212,160,23,0.08);font-size:14px}
-.detail-row:last-child{border-bottom:none}
-.detail-key{color:var(--text2)}
-.detail-val{font-weight:500;text-align:right;max-width:60%}
-.media-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
-.media-item{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
-.media-item img,.media-item video{width:100%;height:100%;object-fit:cover}
-.media-del{position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.75);border:none;border-radius:50%;width:22px;height:22px;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.media-type{position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.7);border-radius:4px;font-size:9px;color:#fff;padding:1px 4px}
-.media-download{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.7);border-radius:4px;font-size:9px;color:#fff;padding:2px 6px;text-decoration:none;cursor:pointer}
-.empty-media{color:var(--text2);font-size:13px;padding:16px 0;text-align:center}
+/* ─── ACTION BUTTONS ─────────────────────────────────────────── */
+.actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.btn {
+  flex: 1; min-width: 80px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: var(--ff);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid;
+  text-align: center;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: .4; cursor: default; }
+.btn-gold   { background: var(--gold); border-color: var(--gold); color: #000; }
+.btn-green  { background: rgba(124,201,42,.12); border-color: rgba(124,201,42,.3); color: var(--green); }
+.btn-red    { background: rgba(226,75,74,.1); border-color: rgba(226,75,74,.3); color: var(--red); }
+.btn-ghost  { background: var(--bg3); border-color: var(--border); color: var(--text2); }
+.btn-outline { background: transparent; border-color: var(--border); color: var(--text2); }
 
-/* PHOTOS UPLOAD */
-.upload-zone{background:var(--bg3);border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;margin-bottom:12px}
-.upload-icon{font-size:32px;margin-bottom:8px;color:var(--text2)}
-.upload-label{font-size:13px;color:var(--text2)}
-.upload-label span{color:var(--gold)}
-.preview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
-.prev-item{position:relative;aspect-ratio:1}
-.prev-item img,.prev-item video{width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
-.prev-del{position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.type-badge{position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,0.7);border-radius:4px;font-size:9px;color:#fff;padding:1px 4px}
-.photo-required-err{color:var(--red);font-size:13px;text-align:center;margin-bottom:8px;display:none}
+/* ─── CALENDAR ───────────────────────────────────────────────── */
+.cal-nav-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cal-nav-btn {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 14px; cursor: pointer; color: var(--text); font-size: 16px;
+}
+.cal-month { font-family: var(--ff2); font-size: 1.4rem; letter-spacing: .08em; }
+.cal-legend { display: flex; gap: 16px; margin-bottom: 12px; justify-content: flex-end; }
+.cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.cal-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; margin-bottom: 10px; }
+.cal-header-cell { text-align: center; font-size: 10px; color: var(--text2); padding: 5px 0; text-transform: uppercase; }
+.cal-cell {
+  position: relative;
+  text-align: center; padding: 8px 2px;
+  border-radius: 8px; font-size: 13px;
+  cursor: pointer;
+  min-height: 34px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+}
+.cal-cell.today { background: rgba(212,160,23,.15); color: var(--gold); font-weight: 600; }
+.cal-cell.selected { background: var(--gold); color: #000; font-weight: 600; }
+.cal-cell.other-month { color: var(--text2); opacity: .35; }
+.cal-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+.cal-event {
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.cal-event:active { opacity: .7; }
+.cal-event-w { background: rgba(232,36,42,.08); border-left: 3px solid var(--w); }
+.cal-event-z { background: rgba(0,200,224,.08); border-left: 3px solid var(--z); }
+.cal-event-time { font-size: 12px; font-weight: 500; margin-bottom: 3px; }
+.cal-event-name { font-weight: 500; font-size: 14px; }
+.cal-event-detail { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.user-pill { display: inline-flex; align-items: center; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-top: 6px; border: 1px solid; }
+.pill-w { background: rgba(232,36,42,.15); color: var(--w); border-color: rgba(232,36,42,.3); }
+.pill-z { background: rgba(0,200,224,.12); color: var(--z); border-color: rgba(0,200,224,.25); }
+
+/* ─── FILTERS ────────────────────────────────────────────────── */
+.filters { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; }
+.filter-chip {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 20px;
+  padding: 5px 14px; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text2);
+}
+.filter-chip.active { background: rgba(212,160,23,.15); border-color: var(--gold); color: var(--gold); }
+
+/* ─── INFO CARDS ─────────────────────────────────────────────── */
+.info-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; margin-bottom: 12px; }
+.info-card-title { font-size: 11px; color: var(--gold); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 10px; }
+.info-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid rgba(212,160,23,.08); font-size: 14px;
+}
+.info-row:last-child { border-bottom: none; }
+.info-key { color: var(--text2); }
+.notebox { background: var(--bg3); border-radius: 10px; padding: 14px; font-size: 14px; line-height: 1.7; color: var(--text2); }
+.call-link {
+  background: rgba(124,201,42,.12); border: 1px solid rgba(124,201,42,.3);
+  border-radius: 20px; padding: 3px 12px; font-size: 12px; color: var(--green);
+  text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+}
+
+/* Delete request card */
+.del-req { background: rgba(232,36,42,.08); border: 1px solid rgba(232,36,42,.3); border-radius: var(--r); padding: 14px; margin-bottom: 10px; }
+.del-req-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.del-req-sub { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+
+/* ─── MODALS ─────────────────────────────────────────────────── */
+/* Modals live inside the app screen, slide up from bottom */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.88);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+}
+.modal-backdrop.open {
+  opacity: 1;
+  pointer-events: all;
+}
+.modal-sheet {
+  background: var(--bg2);
+  border-radius: 20px 20px 0 0;
+  border-top: 1px solid var(--border);
+  padding: 20px 16px 40px;
+  max-height: 92vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  transform: translateY(100%);
+  transition: transform .25s ease;
+}
+.modal-backdrop.open .modal-sheet { transform: translateY(0); }
+.modal-handle { width: 40px; height: 4px; background: var(--bg3); border-radius: 2px; margin: 0 auto 16px; }
+.modal-title { font-family: var(--ff2); font-size: 1.4rem; letter-spacing: .08em; margin-bottom: 4px; }
+.modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+.modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+
+/* Form elements */
+.form-section { font-size: 11px; color: var(--gold); letter-spacing: .1em; text-transform: uppercase; margin: 16px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.form-group { margin-bottom: 13px; }
+.form-label { font-size: 11px; color: var(--text2); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 5px; display: block; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+select.input { -webkit-appearance: none; }
+textarea.input { resize: none; }
+
+/* ─── DETAIL VIEW ────────────────────────────────────────────── */
+.detail-section { margin-bottom: 20px; }
+.detail-label { font-size: 11px; color: var(--gold); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; }
+.detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(212,160,23,.08); font-size: 14px; }
+.detail-row:last-child { border-bottom: none; }
+.detail-key { color: var(--text2); }
+.detail-val { font-weight: 500; text-align: right; max-width: 60%; }
+.pending-banner { background: rgba(232,36,42,.08); border: 1px solid rgba(232,36,42,.2); border-radius: 8px; padding: 7px 10px; font-size: 11px; color: var(--red); margin-bottom: 12px; }
+
+/* Media gallery */
+.media-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-top: 8px; }
+.media-item { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+.media-item img,
+.media-item video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-type-badge { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,.7); border-radius: 4px; font-size: 9px; color: #fff; padding: 1px 4px; }
+.media-save-btn {
+  position: absolute; bottom: 4px; left: 4px; right: 4px;
+  background: rgba(212,160,23,.92); border: none; border-radius: 6px;
+  padding: 4px 6px; font-size: 11px; font-weight: 600; color: #000;
+  cursor: pointer; text-align: center;
+}
+.media-del-btn {
+  position: absolute; top: 4px; right: 4px;
+  background: rgba(0,0,0,.75); border: none; border-radius: 50%;
+  width: 22px; height: 22px; color: #fff; font-size: 13px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.empty-media { color: var(--text2); font-size: 13px; padding: 16px 0; text-align: center; }
+
+/* Upload zone */
+.upload-zone {
+  background: var(--bg3); border: 2px dashed var(--border); border-radius: 12px;
+  padding: 24px; text-align: center; cursor: pointer; margin-bottom: 12px;
+}
+.upload-preview { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 12px; }
+.upload-thumb { position: relative; aspect-ratio: 1; }
+.upload-thumb img,
+.upload-thumb video { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); display: block; }
+.upload-thumb-del {
+  position: absolute; top: 3px; right: 3px;
+  background: rgba(0,0,0,.7); border: none; border-radius: 50%;
+  width: 20px; height: 20px; color: #fff; font-size: 12px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.field-error { color: var(--red); font-size: 12px; margin-bottom: 8px; display: none; }
+
+/* Logistique */
+.log-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; margin-bottom: 10px; }
+.log-meta { font-size: 11px; color: var(--text2); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+.log-msg { font-size: 14px; line-height: 1.5; margin-bottom: 8px; }
+.badge-new  { background: rgba(232,36,42,.12); color: var(--red); border-color: rgba(232,36,42,.25); }
+.badge-done-log { background: rgba(124,201,42,.12); color: var(--green); border-color: rgba(124,201,42,.25); }
 </style>
 </head>
 <body>
 
-<div id="loading-screen">
-  <img src="https://i.postimg.cc/brV0XrTg/logo.png" alt="Lumera" style="width:200px;height:auto;margin-bottom:24px" onerror="this.style.display='none';document.getElementById('logo-fallback').style.display='block'">
-  <div id="logo-fallback" style="display:none;font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:0.2em;color:#F5F0E8;margin-bottom:24px">LUMERA</div>
+<!-- ═══ SCREEN: LOADING ═══════════════════════════════════════ -->
+<div id="screen-loading" class="screen active">
+  <img src="https://i.postimg.cc/brV0XrTg/logo.png" alt="Lumera"
+    style="width:200px;height:auto;margin-bottom:24px"
+    onerror="this.style.display='none';document.getElementById('logo-load-fb').style.display='block'">
+  <div id="logo-load-fb" style="display:none;font-family:var(--ff2);font-size:2.5rem;letter-spacing:.2em;margin-bottom:24px">LUMERA</div>
   <div class="spinner"></div>
-  <div style="font-size:13px;color:var(--text2);margin-top:12px">Connexion...</div>
+  <p style="font-size:13px;color:var(--text2);margin-top:12px">Connexion en cours…</p>
 </div>
 
-<div id="login-screen">
-  <img src="https://i.postimg.cc/brV0XrTg/logo.png" alt="Lumera" style="width:260px;height:auto;margin-bottom:2rem" onerror="this.outerHTML='<div style=\'font-family:Bebas Neue,sans-serif;font-size:2.5rem;letter-spacing:0.2em;color:#F5F0E8;margin-bottom:2rem\'>LUMERA</div>'">
+<!-- ═══ SCREEN: LOGIN ════════════════════════════════════════ -->
+<div id="screen-login" class="screen">
+  <img src="https://i.postimg.cc/brV0XrTg/logo.png" alt="Lumera"
+    style="width:260px;height:auto;margin-bottom:2rem"
+    onerror="this.outerHTML='<div style=\'font-family:var(--ff2);font-size:2.5rem;letter-spacing:.2em;margin-bottom:2rem\'>LUMERA</div>'">
   <div class="login-form">
-    <input class="li" id="lu" type="email" placeholder="Email" autocomplete="email">
-    <input class="li" id="lp" type="password" placeholder="Mot de passe" autocomplete="current-password">
-    <label class="remrow"><input type="checkbox" id="remember" checked> Se souvenir de moi</label>
-    <div class="lerr" id="lerr"></div>
-    <button class="lbtn" id="lbtn" onclick="doLogin()">Connexion</button>
+    <input id="inp-email" class="input" type="email" placeholder="Email" autocomplete="email">
+    <input id="inp-pass"  class="input" type="password" placeholder="Mot de passe" autocomplete="current-password">
+    <label class="remember-row">
+      <input type="checkbox" id="chk-remember" checked> Se souvenir de moi
+    </label>
+    <p class="error-text" id="login-error"></p>
+    <button class="btn-primary" id="btn-login">Connexion</button>
   </div>
 </div>
 
-<div id="app-shell">
-  <div class="top-bar">
-    <img src="https://i.postimg.cc/brV0XrTg/logo.png" alt="Lumera" style="height:40px;width:auto" onerror="this.outerHTML='<span style=\'font-family:Bebas Neue,sans-serif;font-size:1.3rem;letter-spacing:0.15em;color:#F5F0E8\'>LUMERA</span>'">
-    <div style="display:flex;align-items:center;gap:8px">
-      <span class="admin-badge" id="admin-badge" style="display:none">ADMIN</span>
-      <div style="font-size:12px;color:var(--text2)" id="welmsg"></div>
-      <div class="sync-dot" id="sync-dot"></div>
-      <div class="ubadge" id="ubadge" onclick="doLogout()">W</div>
-    </div>
-  </div>
+<!-- ═══ SCREEN: APP ══════════════════════════════════════════ -->
+<div id="screen-app" class="screen">
 
-  <div class="content">
-    <!-- DASHBOARD -->
-    <div class="page active" id="page-dashboard">
-      <div class="stitle">Dashboard</div><div class="gline"></div>
-      <div id="del-requests-section" style="display:none;margin-bottom:16px">
-        <div class="ssub" style="color:var(--red)">Demandes de suppression</div>
+  <!-- Top bar -->
+  <header class="topbar">
+    <img src="https://i.postimg.cc/brV0XrTg/logo.png" alt="Lumera" style="height:40px;width:auto"
+      onerror="this.outerHTML='<span style=\'font-family:var(--ff2);font-size:1.3rem;letter-spacing:.15em\'>LUMERA</span>'">
+    <div class="topbar-right">
+      <span class="admin-badge" id="el-admin-badge" style="display:none">ADMIN</span>
+      <span style="font-size:12px;color:var(--text2)" id="el-username"></span>
+      <div class="sync-dot" id="el-sync"></div>
+      <div class="avatar" id="el-avatar" data-action="logout">W</div>
+    </div>
+  </header>
+
+  <!-- Pages -->
+  <main class="pages" id="pages-container">
+
+    <!-- ── Dashboard ── -->
+    <section class="page active" id="page-dashboard">
+      <h1 class="page-title">Dashboard</h1>
+      <div class="gold-bar"></div>
+      <div id="del-requests-wrap" style="display:none;margin-bottom:16px">
+        <p class="section-label" style="color:var(--red)">Demandes de suppression</p>
         <div id="del-requests-list"></div>
       </div>
-      <div class="sgrid">
-        <div class="scard"><div class="slabel">Ce mois</div><div class="sval" id="s-count">0</div><div class="sunit">Interventions</div></div>
-        <div class="scard"><div class="slabel">Revenus</div><div class="sval" id="s-rev">0</div><div class="sunit">€ ce mois</div></div>
-        <div class="scard"><div class="slabel">Aujourd'hui</div><div class="sval" id="s-today">0</div><div class="sunit">RDV aujourd'hui</div></div>
-        <div class="scard"><div class="slabel">Prix moyen</div><div class="sval" id="s-avg">79</div><div class="sunit">€ / intervention</div></div>
+      <div class="stats">
+        <div class="stat-card"><p class="stat-label">Ce mois</p><p class="stat-value" id="st-count">0</p><p class="stat-unit">Interventions</p></div>
+        <div class="stat-card"><p class="stat-label">Revenus</p><p class="stat-value" id="st-rev">0</p><p class="stat-unit">€ ce mois</p></div>
+        <div class="stat-card"><p class="stat-label">Aujourd'hui</p><p class="stat-value" id="st-today">0</p><p class="stat-unit">RDV</p></div>
+        <div class="stat-card"><p class="stat-label">Prix moyen</p><p class="stat-value" id="st-avg">79</p><p class="stat-unit">€ / inter.</p></div>
       </div>
-      <button class="new-btn" onclick="openM('m-inter')">
+      <button class="btn-primary" style="margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:10px" data-action="new-intervention">
         <svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Nouvelle intervention
       </button>
-      <div class="ssub">Récentes</div>
+      <p class="section-label">Récentes</p>
       <div id="dash-recent"></div>
-    </div>
+    </section>
 
-    <!-- CALENDRIER -->
-    <div class="page" id="page-calendar">
+    <!-- ── Calendrier ── -->
+    <section class="page" id="page-calendar">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div class="stitle">Calendrier</div>
-        <span style="font-size:10px;color:var(--gold);border:1px solid var(--border);padding:3px 8px;border-radius:20px;letter-spacing:0.08em;text-transform:uppercase">Partagé</span>
+        <h1 class="page-title">Calendrier</h1>
+        <span style="font-size:10px;color:var(--gold);border:1px solid var(--border);padding:3px 8px;border-radius:20px;letter-spacing:.08em;text-transform:uppercase">Partagé</span>
       </div>
-      <div class="gline"></div>
+      <div class="gold-bar"></div>
       <div class="cal-legend">
-        <div class="leg-item"><div class="leg-dot" style="background:var(--w-color)"></div>Wolfgang</div>
-        <div class="leg-item"><div class="leg-dot" style="background:var(--z-color)"></div>Zalimkhan</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--w)"></div>Wolfgang</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--z)"></div>Zalimkhan</div>
       </div>
-      <div class="cal-header">
-        <button class="cal-nav" onclick="chMonth(-1)">‹</button>
-        <div class="cal-month" id="cal-label"></div>
-        <button class="cal-nav" onclick="chMonth(1)">›</button>
+      <div class="cal-nav-row">
+        <button class="cal-nav-btn" data-action="cal-prev">‹</button>
+        <span class="cal-month" id="cal-month-label"></span>
+        <button class="cal-nav-btn" data-action="cal-next">›</button>
       </div>
       <div class="cal-grid" id="cal-grid"></div>
-      <div id="cal-events"></div>
-    </div>
+      <div id="cal-events-list"></div>
+    </section>
 
-    <!-- INTERVENTIONS -->
-    <div class="page" id="page-interventions">
-      <div class="stitle">Interventions</div><div class="gline"></div>
-      <div class="filter-row">
-        <div class="chip active" onclick="filterI('all',this)">Toutes</div>
-        <div class="chip" onclick="filterI('pending',this)">En attente</div>
-        <div class="chip" onclick="filterI('started',this)">En cours</div>
-        <div class="chip" onclick="filterI('done',this)">Terminées</div>
+    <!-- ── Interventions ── -->
+    <section class="page" id="page-interventions">
+      <h1 class="page-title">Interventions</h1>
+      <div class="gold-bar"></div>
+      <div class="filters">
+        <div class="filter-chip active" data-filter="all">Toutes</div>
+        <div class="filter-chip" data-filter="pending">En attente</div>
+        <div class="filter-chip" data-filter="started">En cours</div>
+        <div class="filter-chip" data-filter="done">Terminées</div>
       </div>
       <div id="inter-list"></div>
-    </div>
+    </section>
 
-    <!-- INFOS -->
-    <div class="page" id="page-infos">
-      <div class="stitle">Infos Lumera</div><div class="gline"></div>
+    <!-- ── Infos ── -->
+    <section class="page" id="page-infos">
+      <h1 class="page-title">Infos Lumera</h1>
+      <div class="gold-bar"></div>
       <div class="info-card">
-        <div class="ict">Tarifs</div>
-        <div class="info-row"><span class="ik">Paire standard</span><span style="font-weight:500">79 €</span></div>
-        <div class="info-row"><span class="ik">Phares très abîmés</span><span style="font-weight:500">100–120 €</span></div>
-        <div class="info-row"><span class="ik">Déplacement Liège</span><span style="font-weight:500">Inclus</span></div>
-        <div class="info-row"><span class="ik">Déplacement Eupen</span><span style="font-weight:500">Inclus</span></div>
-        <div class="info-row"><span class="ik">Déplacement hors zone</span><span style="font-weight:500">+15 €</span></div>
+        <p class="info-card-title">Tarifs</p>
+        <div class="info-row"><span class="info-key">Paire standard</span><span style="font-weight:500">79 €</span></div>
+        <div class="info-row"><span class="info-key">Phares très abîmés</span><span style="font-weight:500">100–120 €</span></div>
+        <div class="info-row"><span class="info-key">Déplacement Liège</span><span style="font-weight:500">Inclus</span></div>
+        <div class="info-row"><span class="info-key">Déplacement Eupen</span><span style="font-weight:500">Inclus</span></div>
+        <div class="info-row"><span class="info-key">Hors zone</span><span style="font-weight:500">+ 15 €</span></div>
       </div>
       <div class="info-card">
-        <div class="ict">Équipe</div>
-        <div class="info-row">
-          <span class="ik">Wolfgang</span>
-          <a href="tel:0492692896" class="call-btn">📞 0492 69 28 96</a>
-        </div>
-        <div class="info-row"><span class="ik">Zone Wolfgang</span><span style="font-weight:500">Liège & alentours</span></div>
-        <div class="info-row">
-          <span class="ik">Zalimkhan</span>
-          <a href="tel:0496908418" class="call-btn">📞 0496 90 84 18</a>
-        </div>
-        <div class="info-row"><span class="ik">Zone Zalimkhan</span><span style="font-weight:500">Eupen & alentours</span></div>
+        <p class="info-card-title">Équipe</p>
+        <div class="info-row"><span class="info-key">Wolfgang</span><a href="tel:0492692896" class="call-link">📞 0492 69 28 96</a></div>
+        <div class="info-row"><span class="info-key">Zone</span><span style="font-weight:500">Liège & alentours</span></div>
+        <div class="info-row"><span class="info-key">Zalimkhan</span><a href="tel:0496908418" class="call-link">📞 0496 90 84 18</a></div>
+        <div class="info-row"><span class="info-key">Zone</span><span style="font-weight:500">Eupen & alentours</span></div>
       </div>
       <div class="info-card">
-        <div class="ict">Notifications</div>
+        <p class="info-card-title">Notifications</p>
         <div class="info-row">
-          <span class="ik">Recevoir les alertes</span>
-          <button onclick="requestNotifPermission()" style="background:rgba(212,160,23,0.15);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--gold);font-family:var(--ff);cursor:pointer">Activer</button>
+          <span class="info-key">Recevoir les alertes</span>
+          <button class="filter-chip active" data-action="enable-notifs">Activer</button>
         </div>
-        <div style="font-size:11px;color:var(--text2);margin-top:6px">Active les alertes pour les nouvelles interventions et demandes logistique.</div>
+        <p style="font-size:11px;color:var(--text2);margin-top:6px">Alertes pour nouvelles interventions et demandes logistique.</p>
       </div>
-      <div class="info-card"><div class="ict">Check-list intervention</div><div id="checklist"></div></div>
-      <div class="info-card"><div class="ict">Notes internes</div><div class="notebox">Toujours photographier l'état des phares avant et après. Confirmer le prix final après inspection sur place.</div></div>
+      <div class="info-card">
+        <p class="info-card-title">Check-list intervention</p>
+        <div id="checklist"></div>
+      </div>
+      <div class="info-card">
+        <p class="info-card-title">Notes internes</p>
+        <div class="notebox">Toujours photographier l'état des phares avant et après. Confirmer le prix final après inspection sur place.</div>
+      </div>
 
-      <!-- LOGISTIQUE -->
-      <div class="stitle" style="margin-top:8px">Logistique</div>
-      <div class="gline"></div>
-      <div class="log-input-area">
-        <div style="font-size:13px;color:var(--text2);margin-bottom:10px">Signaler un besoin de réapprovisionnement :</div>
-        <textarea class="fi" id="log-msg" rows="3" placeholder="Ex: Stock de polish terminé, commander 2 bouteilles..." style="resize:none;margin-bottom:10px"></textarea>
-        <button class="new-btn" style="margin:0;padding:12px" onclick="sendLogRequest()">Envoyer la demande</button>
+      <h1 class="page-title" style="margin-top:8px">Logistique</h1>
+      <div class="gold-bar"></div>
+      <div class="info-card">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:10px">Signaler un besoin de réapprovisionnement :</p>
+        <textarea id="log-input" class="input" rows="3" placeholder="Ex: Stock de polish terminé, commander 2 bouteilles…" style="margin-bottom:10px"></textarea>
+        <button class="btn-primary" data-action="send-log">Envoyer la demande</button>
       </div>
       <div id="log-list"></div>
-    </div>
-  </div>
+    </section>
 
-  <nav class="bottom-nav">
-    <button class="nav-item active" onclick="showP('dashboard',this)">
-      <svg class="nav-svg" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard
+  </main>
+
+  <!-- Bottom nav -->
+  <nav class="bottomnav">
+    <button class="nav-btn active" data-page="dashboard">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      Dashboard
     </button>
-    <button class="nav-item" onclick="showP('calendar',this)">
-      <svg class="nav-svg" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z"/></svg>Calendrier
+    <button class="nav-btn" data-page="calendar">
+      <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z"/></svg>
+      Calendrier
     </button>
-    <button class="nav-item" onclick="showP('interventions',this)">
-      <div class="nav-rel">
-        <svg class="nav-svg" viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>
-        <div class="notif-dot" id="notif-dot"></div>
-      </div>
+    <button class="nav-btn" data-page="interventions">
+      <div class="badge-dot" id="badge-del"></div>
+      <svg viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>
       Interventions
     </button>
-    <button class="nav-item" onclick="showP('infos',this)">
-      <div class="nav-rel">
-        <svg class="nav-svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-        <div class="notif-dot" id="log-dot"></div>
-      </div>
+    <button class="nav-btn" data-page="infos">
+      <div class="badge-dot" id="badge-log"></div>
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
       Infos
     </button>
   </nav>
 </div>
 
-<!-- MODAL NOUVELLE INTERVENTION -->
-<div class="modal-overlay" id="m-inter" onclick="closeOut(event,'m-inter')">
-  <div class="msheet">
-    <div class="mhandle"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <div class="mtitle" style="margin-bottom:0">Nouvelle intervention</div>
-      <button onclick="closeM('m-inter')" style="background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:32px;height:32px;color:var(--text2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>
-    </div>
+<!-- ═══ MODALS ═══════════════════════════════════════════════ -->
+
+<!-- New Intervention -->
+<div class="modal-backdrop" id="modal-inter">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-title">Nouvelle intervention</h2>
     <div class="form-section">Informations client</div>
-    <div class="fg"><label class="fl">Client</label><input class="fi" id="ni-c" placeholder="Nom du client"></div>
-    <div class="fg"><label class="fl">Téléphone client</label><input class="fi" id="ni-phone" type="tel" placeholder="Ex: 0477 12 34 56"></div>
-    <div class="fg"><label class="fl">Véhicule</label><input class="fi" id="ni-v" placeholder="Ex: BMW Série 3 — 2019"></div>
-    <div class="fg"><label class="fl">Adresse</label><input class="fi" id="ni-a" placeholder="Rue, ville"></div>
+    <div class="form-group"><label class="form-label">Client</label><input id="ni-client" class="input" placeholder="Nom du client"></div>
+    <div class="form-group"><label class="form-label">Téléphone</label><input id="ni-phone" class="input" type="tel" placeholder="0477 12 34 56"></div>
+    <div class="form-group"><label class="form-label">Véhicule</label><input id="ni-vehicle" class="input" placeholder="BMW Série 3 — 2019"></div>
+    <div class="form-group"><label class="form-label">Adresse</label><input id="ni-address" class="input" placeholder="Rue, ville"></div>
     <div class="form-section">Planification</div>
-    <div class="frow">
-      <div class="fg"><label class="fl">Date</label><input class="fi" id="ni-d" type="date"></div>
-      <div class="fg"><label class="fl">Heure</label><input class="fi" id="ni-t" type="time" value="09:00"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Date</label><input id="ni-date" class="input" type="date"></div>
+      <div class="form-group"><label class="form-label">Heure</label><input id="ni-time" class="input" type="time" value="09:00"></div>
     </div>
     <div class="form-section">Déplacement & Prix</div>
-    <div class="fg"><label class="fl">Déplacement</label>
-      <select class="fs" id="ni-dep"><option value="inclus">Inclus</option><option value="facturé">Facturé séparément</option><option value="gratuit">Gratuit (exception)</option></select>
+    <div class="form-group"><label class="form-label">Déplacement</label>
+      <select id="ni-deplacement" class="input"><option value="inclus">Inclus</option><option value="facturé">Facturé séparément</option><option value="gratuit">Gratuit (exception)</option></select>
     </div>
-    <div class="fg"><label class="fl">Frais déplacement (€)</label><input class="fi" id="ni-dep-prix" type="number" value="0" min="0"></div>
-    <div class="fg"><label class="fl">État phares</label>
-      <select class="fs" id="ni-s"><option value="standard">Standard</option><option value="bad">Très abîmés</option></select>
+    <div class="form-group"><label class="form-label">Frais déplacement (€)</label><input id="ni-dep-cost" class="input" type="number" value="0" min="0"></div>
+    <div class="form-group"><label class="form-label">État phares</label>
+      <select id="ni-state" class="input"><option value="standard">Standard</option><option value="bad">Très abîmés</option></select>
     </div>
-    <div class="frow">
-      <div class="fg"><label class="fl">Prix phares (€)</label><input class="fi" id="ni-p" type="number" value="79" min="0"></div>
-      <div class="fg"><label class="fl">Total (€)</label><input class="fi" id="ni-total" type="number" readonly placeholder="—"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Prix phares (€)</label><input id="ni-price" class="input" type="number" value="79" min="0"></div>
+      <div class="form-group"><label class="form-label">Total (€)</label><input id="ni-total" class="input" type="number" readonly></div>
     </div>
     <div class="form-section">Notes</div>
-    <div class="fg"><textarea class="fi" id="ni-n" rows="2" style="resize:none" placeholder="Vérifier l'état du matériel avant intervention"></textarea></div>
-    <div class="mactions">
-      <button class="bcancel" onclick="closeM('m-inter')">Annuler</button>
-      <button class="bsave" id="btn-save-inter" onclick="saveInter()">Enregistrer</button>
+    <div class="form-group"><textarea id="ni-notes" class="input" rows="2" placeholder="Vérifier l'état du matériel avant intervention"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-inter">Annuler</button>
+      <button class="btn btn-gold" id="btn-save-inter">Enregistrer</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL FICHE DETAIL -->
-<div class="modal-overlay" id="m-detail" onclick="closeOut(event,'m-detail')">
-  <div class="msheet" id="m-detail-content">
-    <div class="mhandle"></div>
-    <div style="display:flex;justify-content:flex-end;margin-bottom:-8px">
-      <button onclick="closeM('m-detail')" style="background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:32px;height:32px;color:var(--text2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
-    </div>
-    <div id="detail-body"></div>
+<!-- Detail / Fiche -->
+<div class="modal-backdrop" id="modal-detail">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="detail-content"></div>
   </div>
 </div>
 
-<!-- MODAL PHOTOS AVANT -->
-<div class="modal-overlay" id="m-avant" onclick="closeOut(event,'m-avant')">
-  <div class="msheet">
-    <div class="mhandle"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <div class="mtitle" style="margin-bottom:0">Photos AVANT</div>
-      <button onclick="closeM('m-avant')" style="background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:32px;height:32px;color:var(--text2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>
+<!-- Photos AVANT -->
+<div class="modal-backdrop" id="modal-avant">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-title">Photos AVANT</h2>
+    <p class="modal-sub" id="avant-label">État des phares avant intervention.</p>
+    <div class="upload-zone" data-action="pick-avant">
+      <div style="font-size:32px;margin-bottom:8px;color:var(--text2)">📷</div>
+      <p style="font-size:13px;color:var(--text2)">Appuyer pour ajouter<br><span style="color:var(--gold)">photos ou vidéos</span></p>
     </div>
-    <div class="msub" id="avant-sub">État des phares avant intervention.</div>
-    <div class="upload-zone" onclick="document.getElementById('file-avant').click()">
-      <div class="upload-icon">📷</div>
-      <div class="upload-label">Appuyer pour ajouter<br><span>photos ou vidéos</span></div>
-    </div>
-    <input type="file" id="file-avant" accept="image/*,video/*" multiple style="display:none" onchange="handleFiles(event,'avant')">
-    <div class="preview-grid" id="prev-avant"></div>
-    <div class="photo-required-err" id="avant-err">⚠️ Ajoute au moins une photo avant de commencer.</div>
-    <div class="mactions">
-      <button class="bcancel" onclick="closeM('m-avant')">Annuler</button>
-      <button class="bsave" id="btn-avant" onclick="confirmAvant()">Commencer →</button>
+    <input type="file" id="file-avant" accept="image/*,video/*" multiple style="display:none">
+    <div class="upload-preview" id="preview-avant"></div>
+    <p class="field-error" id="err-avant">⚠️ Ajoute au moins une photo/vidéo avant de continuer.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-avant">Annuler</button>
+      <button class="btn btn-gold" id="btn-confirm-avant">Commencer →</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL PHOTOS APRÈS -->
-<div class="modal-overlay" id="m-apres" onclick="closeOut(event,'m-apres')">
-  <div class="msheet">
-    <div class="mhandle"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <div class="mtitle" style="margin-bottom:0">Photos APRÈS</div>
-      <button onclick="closeM('m-apres')" style="background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:32px;height:32px;color:var(--text2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>
+<!-- Photos APRÈS -->
+<div class="modal-backdrop" id="modal-apres">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-title">Photos APRÈS</h2>
+    <p class="modal-sub" id="apres-label">Résultat après intervention.</p>
+    <div class="upload-zone" data-action="pick-apres">
+      <div style="font-size:32px;margin-bottom:8px;color:var(--text2)">✨</div>
+      <p style="font-size:13px;color:var(--text2)">Appuyer pour ajouter<br><span style="color:var(--gold)">photos ou vidéos</span></p>
     </div>
-    <div class="msub" id="apres-sub">Résultat après intervention.</div>
-    <div class="upload-zone" onclick="document.getElementById('file-apres').click()">
-      <div class="upload-icon">✨</div>
-      <div class="upload-label">Appuyer pour ajouter<br><span>photos ou vidéos</span></div>
-    </div>
-    <input type="file" id="file-apres" accept="image/*,video/*" multiple style="display:none" onchange="handleFiles(event,'apres')">
-    <div class="preview-grid" id="prev-apres"></div>
-    <div class="photo-required-err" id="apres-err">⚠️ Ajoute au moins une photo avant de terminer.</div>
-    <div class="mactions">
-      <button class="bcancel" onclick="closeM('m-apres')">Annuler</button>
-      <button class="bsave" id="btn-apres" onclick="confirmApres()">Terminer ✓</button>
+    <input type="file" id="file-apres" accept="image/*,video/*" multiple style="display:none">
+    <div class="upload-preview" id="preview-apres"></div>
+    <p class="field-error" id="err-apres">⚠️ Ajoute au moins une photo/vidéo avant de terminer.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-apres">Annuler</button>
+      <button class="btn btn-gold" id="btn-confirm-apres">Terminer ✓</button>
     </div>
   </div>
 </div>
 
+<!-- ═══ FIREBASE + APP LOGIC ══════════════════════════════════ -->
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, doc, addDoc, getDocs, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { initializeApp }                                    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, signOut,
+         onAuthStateChanged, setPersistence,
+         browserLocalPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, doc, addDoc, getDocs,
+         deleteDoc, onSnapshot, query, where, orderBy,
+         serverTimestamp, updateDoc }                        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDwS_6ootrFEGUnuE9UrjbOIduQR9ScRtE",
-  authDomain: "lumera-b0dd6.firebaseapp.com",
-  projectId: "lumera-b0dd6",
-  storageBucket: "lumera-b0dd6.firebasestorage.app",
+/* ── Config ── */
+const FB_CONFIG = {
+  apiKey:            "AIzaSyDwS_6ootrFEGUnuE9UrjbOIduQR9ScRtE",
+  authDomain:        "lumera-b0dd6.firebaseapp.com",
+  projectId:         "lumera-b0dd6",
+  storageBucket:     "lumera-b0dd6.firebasestorage.app",
   messagingSenderId: "505865456021",
-  appId: "1:505865456021:web:a66e05d4bbc70fd5d14e9c"
+  appId:             "1:505865456021:web:a66e05d4bbc70fd5d14e9c"
 };
-
-const ADMIN_UID = 'wTDpsM4KGVWvqoqAXzc7kHF6TKi2';
-const USER_NAMES = { 'wTDpsM4KGVWvqoqAXzc7kHF6TKi2': 'Wolfgang', 'DgKRGxRjNCVaPxw1NJg6XpPQegk2': 'Zalimkhan' };
+const ADMIN_UID   = 'wTDpsM4KGVWvqoqAXzc7kHF6TKi2';
+const USER_NAMES  = { 'wTDpsM4KGVWvqoqAXzc7kHF6TKi2': 'Wolfgang', 'DgKRGxRjNCVaPxw1NJg6XpPQegk2': 'Zalimkhan' };
 const R2_ENDPOINT = 'https://109f9c4aeeb9ecb6a70d9a6066f28e7c.r2.cloudflarestorage.com';
-const R2_BUCKET = 'lumera-media';
-const R2_ACCESS_KEY = 'ca0d239daf6234ef23d7eff300b1cc74';
-const R2_SECRET_KEY = '6afce291b768b0a532074f36428ef382a68e41c14b438f1367fdc952b6971b7c';
-const R2_PUBLIC_URL = 'https://pub-ab310b9497f449da9122e68017a8188a.r2.dev';
-const VAPID_PUBLIC_KEY = '';
+const R2_BUCKET   = 'lumera-media';
+const R2_KEY      = 'ca0d239daf6234ef23d7eff300b1cc74';
+const R2_SECRET   = '6afce291b768b0a532074f36428ef382a68e41c14b438f1367fdc952b6971b7c';
+const R2_PUBLIC   = 'https://pub-ab310b9497f449da9122e68017a8188a.r2.dev';
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const fbApp = initializeApp(FB_CONFIG);
+const auth  = getAuth(fbApp);
+const db    = getFirestore(fbApp);
 
-let CU_UID = '', CU_NAME = '';
-let calDate = new Date(), selDay = null, activeId = null;
+/* ── State ── */
+let uid = '', userName = '';
+let calDate = new Date(), selectedDay = null, activeInterId = null;
 let pendingFiles = { avant: [], apres: [] };
-let localInterventions = [], localCalEvents = [], localDelRequests = [], localLogRequests = [];
-let unsubI = null, unsubC = null, unsubD = null, unsubL = null;
+let store = { interventions: [], calendar: [], delRequests: [], logRequests: [] };
+let unsubs = [];
 
-function isAdmin() { return CU_UID === ADMIN_UID; }
-function setSyncState(s) {
-  const d = document.getElementById('sync-dot');
-  d.className = 'sync-dot' + (s === 'syncing' ? ' syncing' : s === 'error' ? ' error' : '');
+const isAdmin = () => uid === ADMIN_UID;
+
+/* ══════════════════════════════════════════════════════════════
+   SCREEN MANAGER — single source of truth for which screen shows
+   ══════════════════════════════════════════════════════════════ */
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('screen-' + name);
+  if (target) target.classList.add('active');
 }
 
-// AUTH
+/* ══════════════════════════════════════════════════════════════
+   AUTH
+   ══════════════════════════════════════════════════════════════ */
 onAuthStateChanged(auth, user => {
   if (user) {
-    CU_UID = user.uid; CU_NAME = USER_NAMES[user.uid] || user.email;
-    document.getElementById('loading-screen').style.display = 'none';
-    document.getElementById('app-shell').style.display = 'flex';
-    window.scrollTo(0,0);
-    document.body.scrollTop = 0;
-    document.documentElement.scrollTop = 0;
-    document.getElementById('welmsg').textContent = CU_NAME;
-    document.getElementById('ubadge').textContent = CU_NAME[0];
-    document.getElementById('admin-badge').style.display = isAdmin() ? 'inline-flex' : 'none';
-    document.getElementById('ni-d').valueAsDate = new Date();
+    uid      = user.uid;
+    userName = USER_NAMES[user.uid] || user.email;
+    document.getElementById('el-username').textContent = userName;
+    document.getElementById('el-avatar').textContent   = userName[0];
+    document.getElementById('el-admin-badge').style.display = isAdmin() ? 'inline-flex' : 'none';
+    document.getElementById('ni-date').valueAsDate = new Date();
     setupPriceCalc();
-    startListeners();
     renderChecklist();
-    // notifications activées manuellement depuis Infos
+    startListeners();
+    showScreen('app');
   } else {
-    CU_UID = ''; CU_NAME = '';
+    uid = ''; userName = '';
     stopListeners();
-    document.getElementById('loading-screen').style.display = 'none';
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('app-shell').style.display = 'none';
+    showScreen('login');
   }
 });
 
-window.doLogin = async function() {
-  const email = document.getElementById('lu').value.trim();
-  const pass = document.getElementById('lp').value;
-  const err = document.getElementById('lerr');
-  const btn = document.getElementById('lbtn');
-  err.textContent = ''; btn.disabled = true; btn.textContent = 'Connexion...';
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const email = document.getElementById('inp-email').value.trim();
+  const pass  = document.getElementById('inp-pass').value;
+  const errEl = document.getElementById('login-error');
+  const btn   = document.getElementById('btn-login');
+
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Connexion…';
+
   try {
-    const p = document.getElementById('remember').checked ? browserLocalPersistence : browserSessionPersistence;
-    await setPersistence(auth, p);
+    const persistence = document.getElementById('chk-remember').checked
+      ? browserLocalPersistence : browserSessionPersistence;
+    await setPersistence(auth, persistence);
     await signInWithEmailAndPassword(auth, email, pass);
-    // Connexion réussie — cacher login immédiatement
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('loading-screen').style.display = 'flex';
-  } catch(e) {
-    err.textContent = 'Email ou mot de passe incorrect.';
+    // onAuthStateChanged handles the screen transition
+  } catch {
+    errEl.textContent = 'Email ou mot de passe incorrect.';
+    btn.disabled = false;
+    btn.textContent = 'Connexion';
   }
-  btn.disabled = false; btn.textContent = 'Connexion';
-};
+});
 
-window.doLogout = async function() {
-  if (!confirm('Se déconnecter ?')) return;
-  stopListeners(); await signOut(auth);
-};
-
-// PUSH NOTIFICATIONS
-window.requestNotifPermission = async function() {
-  if (!('Notification' in window)) { alert('Les notifications ne sont pas supportées sur ce navigateur.'); return; }
-  const result = await Notification.requestPermission();
-  if (result === 'granted') alert('✅ Notifications activées !');
-  else alert('❌ Notifications refusées. Tu peux les activer dans les réglages Safari.');
-};
-
-function showLocalNotif(title, body) {
-  if (Notification.permission === 'granted') {
-    new Notification(title, { body, icon: 'https://i.postimg.cc/brV0XrTg/logo.png' });
-  }
+/* ══════════════════════════════════════════════════════════════
+   SYNC INDICATOR
+   ══════════════════════════════════════════════════════════════ */
+function setSync(state) {
+  const el = document.getElementById('el-sync');
+  el.className = 'sync-dot' + (state === 'busy' ? ' busy' : state === 'error' ? ' error' : '');
 }
 
-// LISTENERS
+/* ══════════════════════════════════════════════════════════════
+   REALTIME LISTENERS
+   ══════════════════════════════════════════════════════════════ */
 function startListeners() {
-  // Interventions — admin voit tout, ouvrier voit les siennes
-  const qI = isAdmin()
+  const qInter = isAdmin()
     ? query(collection(db, 'interventions'))
-    : query(collection(db, 'interventions'), where('uid', '==', CU_UID));
+    : query(collection(db, 'interventions'), where('uid', '==', uid));
 
-  let firstLoadI = true;
-  unsubI = onSnapshot(qI, snap => {
-    const prev = localInterventions.length;
-    localInterventions = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }))
-      .sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
-    setSyncState('ok');
-    if (!firstLoadI && localInterventions.length > prev) {
-      const newest = localInterventions[0];
-      if (newest && newest.createdBy !== CU_NAME) showLocalNotif('Nouvelle intervention', `${newest.createdBy} a ajouté : ${newest.client}`);
+  let firstInter = true;
+  unsubs.push(onSnapshot(qInter, snap => {
+    const prev = store.interventions.length;
+    store.interventions = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    setSync('ok');
+    if (!firstInter && store.interventions.length > prev) {
+      const newest = store.interventions[0];
+      if (newest?.createdBy !== userName) notify('Nouvelle intervention', `${newest.createdBy} — ${newest.client}`);
     }
-    firstLoadI = false;
-    renderDash(); renderInter();
-  }, () => setSyncState('error'));
+    firstInter = false;
+    renderDashboard();
+    renderInterventions();
+  }, () => setSync('error')));
 
-  const qC = query(collection(db, 'calendar'), orderBy('date', 'asc'));
-  unsubC = onSnapshot(qC, snap => { localCalEvents = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() })); renderCal(); });
+  unsubs.push(onSnapshot(
+    query(collection(db, 'calendar'), orderBy('date', 'asc')),
+    snap => { store.calendar = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderCalendar(); }
+  ));
 
-  const qD = query(collection(db, 'delRequests'));
-  unsubD = onSnapshot(qD, snap => {
-    localDelRequests = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
-    const hasDel = isAdmin() && localDelRequests.length > 0;
-    document.getElementById('notif-dot').style.display = hasDel ? 'block' : 'none';
-    renderDash(); renderInter();
-  });
+  unsubs.push(onSnapshot(query(collection(db, 'delRequests')), snap => {
+    store.delRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const show = isAdmin() && store.delRequests.length > 0;
+    document.getElementById('badge-del').classList.toggle('show', show);
+    renderDashboard();
+    renderInterventions();
+  }));
 
-  const qL = query(collection(db, 'logRequests'), orderBy('createdAt', 'desc'));
-  let firstLoadL = true;
-  unsubL = onSnapshot(qL, snap => {
-    localLogRequests = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
-    const hasNew = isAdmin() && localLogRequests.some(r => r.status === 'new');
-    document.getElementById('log-dot').style.display = hasNew ? 'block' : 'none';
-    if (!firstLoadL && isAdmin()) {
-      const newest = localLogRequests[0];
-      if (newest && newest.status === 'new') showLocalNotif('Demande logistique', `${newest.by} : ${newest.message.slice(0,60)}`);
+  let firstLog = true;
+  unsubs.push(onSnapshot(
+    query(collection(db, 'logRequests'), orderBy('createdAt', 'desc')),
+    snap => {
+      store.logRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const hasNew = isAdmin() && store.logRequests.some(r => r.status === 'new');
+      document.getElementById('badge-log').classList.toggle('show', hasNew);
+      if (!firstLog && isAdmin() && hasNew) {
+        const newest = store.logRequests[0];
+        if (newest?.status === 'new') notify('Demande logistique', `${newest.by} : ${newest.message.slice(0, 60)}`);
+      }
+      firstLog = false;
+      renderLogList();
     }
-    firstLoadL = false;
-    renderLogList();
-  });
+  ));
 }
 
 function stopListeners() {
-  [unsubI, unsubC, unsubD, unsubL].forEach(u => u && u());
-  unsubI = unsubC = unsubD = unsubL = null;
+  unsubs.forEach(u => u());
+  unsubs = [];
 }
 
-// PRICE CALC
+/* ══════════════════════════════════════════════════════════════
+   NOTIFICATIONS
+   ══════════════════════════════════════════════════════════════ */
+async function enableNotifications() {
+  if (!('Notification' in window)) { alert('Notifications non supportées sur ce navigateur.'); return; }
+  const result = await Notification.requestPermission();
+  alert(result === 'granted' ? '✅ Notifications activées !' : '❌ Notifications refusées dans les réglages Safari.');
+}
+function notify(title, body) {
+  if (Notification.permission === 'granted') new Notification(title, { body, icon: 'https://i.postimg.cc/brV0XrTg/logo.png' });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MODAL MANAGER
+   ══════════════════════════════════════════════════════════════ */
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PAGE NAVIGATION
+   ══════════════════════════════════════════════════════════════ */
+function navigateTo(pageName) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + pageName)?.classList.add('active');
+  document.querySelector(`.nav-btn[data-page="${pageName}"]`)?.classList.add('active');
+  document.getElementById('pages-container').scrollTop = 0;
+  if (pageName === 'calendar') renderCalendar();
+  if (pageName === 'infos')    renderLogList();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   EVENT DELEGATION — single listener on the document
+   ══════════════════════════════════════════════════════════════ */
+document.addEventListener('click', async e => {
+  const target = e.target.closest('[data-action], [data-page], [data-filter]');
+  if (!target) return;
+
+  /* Navigation */
+  if (target.dataset.page) { navigateTo(target.dataset.page); return; }
+
+  /* Filters */
+  if (target.dataset.filter) {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    target.classList.add('active');
+    renderInterventions(target.dataset.filter);
+    return;
+  }
+
+  /* Actions */
+  switch (target.dataset.action) {
+    case 'logout':        if (confirm('Se déconnecter ?')) { stopListeners(); signOut(auth); } break;
+    case 'new-intervention': openModal('modal-inter'); break;
+    case 'close-modal':   closeModal(target.dataset.modal); break;
+    case 'cal-prev':      calDate.setMonth(calDate.getMonth() - 1); renderCalendar(); break;
+    case 'cal-next':      calDate.setMonth(calDate.getMonth() + 1); renderCalendar(); break;
+    case 'pick-avant':    document.getElementById('file-avant').click(); break;
+    case 'pick-apres':    document.getElementById('file-apres').click(); break;
+    case 'enable-notifs': await enableNotifications(); break;
+    case 'send-log':      await sendLogRequest(); break;
+    case 'view-inter':    openDetail(target.dataset.id); break;
+    case 'start-inter':   e.stopPropagation(); preparePhotoModal('avant', target.dataset.id, target.dataset.client); break;
+    case 'finish-inter':  e.stopPropagation(); preparePhotoModal('apres', target.dataset.id, target.dataset.client); break;
+    case 'delete-inter':  e.stopPropagation(); await handleDelete(target.dataset.id, target.dataset.client, target.dataset.date, target.dataset.vehicle); break;
+    case 'admin-delete':  e.stopPropagation(); await adminDelete(target.dataset.del, target.dataset.inter); break;
+    case 'deny-delete':   e.stopPropagation(); await deleteDoc(doc(db, 'delRequests', target.dataset.id)); break;
+    case 'log-done':      await updateDoc(doc(db, 'logRequests', target.dataset.id), { status: 'done' }); break;
+    case 'log-delete':    await deleteDoc(doc(db, 'logRequests', target.dataset.id)); break;
+    case 'del-media':     await deleteMedia(target.dataset.fid, target.dataset.key, target.dataset.type); break;
+    case 'save-media':    await shareMedia(target.dataset.url, target.dataset.mtype, target.dataset.name); break;
+  }
+});
+
+/* Close modal when clicking backdrop */
+document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+  backdrop.addEventListener('click', e => {
+    if (e.target === backdrop) closeModal(backdrop.id);
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════
+   PRICE CALCULATOR
+   ══════════════════════════════════════════════════════════════ */
 function setupPriceCalc() {
-  const p = document.getElementById('ni-p'), d = document.getElementById('ni-dep-prix'), t = document.getElementById('ni-total');
-  function calc() { t.value = (parseInt(p.value)||0) + (parseInt(d.value)||0); }
-  p.oninput = calc; d.oninput = calc; calc();
+  const price = document.getElementById('ni-price');
+  const dep   = document.getElementById('ni-dep-cost');
+  const total = document.getElementById('ni-total');
+  const calc  = () => { total.value = (parseInt(price.value) || 0) + (parseInt(dep.value) || 0); };
+  price.addEventListener('input', calc);
+  dep.addEventListener('input', calc);
+  calc();
 }
 
-// SAVE INTERVENTION
-window.saveInter = async function() {
-  const btn = document.getElementById('btn-save-inter');
-  btn.disabled = true; btn.textContent = 'Enregistrement...';
-  setSyncState('syncing');
-  const client = document.getElementById('ni-c').value.trim() || 'Client';
-  const date = document.getElementById('ni-d').value;
-  const time = document.getElementById('ni-t').value;
-  const prixPhares = parseInt(document.getElementById('ni-p').value) || 79;
-  const prixDep = parseInt(document.getElementById('ni-dep-prix').value) || 0;
-  const obj = {
-    uid: CU_UID, createdBy: CU_NAME,
-    client, phone: document.getElementById('ni-phone').value.trim(),
-    vehicle: document.getElementById('ni-v').value.trim(),
-    date, time, address: document.getElementById('ni-a').value.trim(),
-    state: document.getElementById('ni-s').value,
-    deplacement: document.getElementById('ni-dep').value,
-    prixDeplacement: prixDep, price: prixPhares, total: prixPhares + prixDep,
-    notes: document.getElementById('ni-n').value || 'Vérifier l\'état du matériel avant intervention',
-    status: 'pending', photosAvant: [], photosApres: [],
-    createdAt: serverTimestamp()
+/* ══════════════════════════════════════════════════════════════
+   SAVE INTERVENTION
+   ══════════════════════════════════════════════════════════════ */
+document.getElementById('btn-save-inter').addEventListener('click', async () => {
+  const btn    = document.getElementById('btn-save-inter');
+  btn.disabled = true; btn.textContent = 'Enregistrement…';
+  setSync('busy');
+
+  const client   = document.getElementById('ni-client').value.trim()   || 'Client';
+  const date     = document.getElementById('ni-date').value;
+  const time     = document.getElementById('ni-time').value;
+  const price    = parseInt(document.getElementById('ni-price').value)    || 79;
+  const depCost  = parseInt(document.getElementById('ni-dep-cost').value) || 0;
+
+  const data = {
+    uid, createdBy: userName, client,
+    phone:       document.getElementById('ni-phone').value.trim(),
+    vehicle:     document.getElementById('ni-vehicle').value.trim(),
+    date, time,
+    address:     document.getElementById('ni-address').value.trim(),
+    state:       document.getElementById('ni-state').value,
+    deplacement: document.getElementById('ni-deplacement').value,
+    prixDeplacement: depCost,
+    price, total: price + depCost,
+    notes:       document.getElementById('ni-notes').value || 'Vérifier l\'état du matériel avant intervention',
+    status:      'pending',
+    photosAvant: [], photosApres: [],
+    createdAt:   serverTimestamp(),
   };
+
   try {
-    const ref = await addDoc(collection(db, 'interventions'), obj);
+    const ref = await addDoc(collection(db, 'interventions'), data);
     await addDoc(collection(db, 'calendar'), {
       interRef: ref.id, title: '🔧 ' + client,
-      date, time, note: (obj.vehicle||'') + (obj.address ? ' · ' + obj.address : ''),
-      by: CU_NAME, byUid: CU_UID
+      date, time,
+      note: [data.vehicle, data.address].filter(Boolean).join(' · '),
+      by: userName, byUid: uid,
     });
-    closeM('m-inter');
-    ['ni-c','ni-phone','ni-v','ni-a'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('ni-p').value = '79'; document.getElementById('ni-dep-prix').value = '0';
-    document.getElementById('ni-total').value = ''; document.getElementById('ni-n').value = '';
-    setSyncState('ok');
-  } catch(e) { setSyncState('error'); alert('Erreur: ' + e.message); }
+    closeModal('modal-inter');
+    ['ni-client','ni-phone','ni-vehicle','ni-address','ni-notes'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('ni-price').value    = '79';
+    document.getElementById('ni-dep-cost').value = '0';
+    document.getElementById('ni-total').value    = '';
+    setSync('ok');
+  } catch (err) {
+    setSync('error');
+    alert('Erreur : ' + err.message);
+  }
+
   btn.disabled = false; btn.textContent = 'Enregistrer';
-};
+});
 
-// LOGISTIQUE
-window.sendLogRequest = async function() {
-  const msg = document.getElementById('log-msg').value.trim();
-  if (!msg) { alert('Écris un message avant d\'envoyer.'); return; }
-  await addDoc(collection(db, 'logRequests'), { message: msg, by: CU_NAME, byUid: CU_UID, status: 'new', createdAt: serverTimestamp() });
-  document.getElementById('log-msg').value = '';
-  alert('Demande envoyée à Wolfgang.');
-};
-
-window.markLogDone = async function(fid) {
-  await updateDoc(doc(db, 'logRequests', fid), { status: 'done' });
-};
-
-window.deleteLog = async function(fid) {
-  await deleteDoc(doc(db, 'logRequests', fid));
-};
-
-function renderLogList() {
-  const el = document.getElementById('log-list');
-  if (!el) return;
-  if (!localLogRequests.length) { el.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:16px">Aucune demande en cours</div>'; return; }
-  el.innerHTML = localLogRequests.map(r => `
-    <div class="log-item">
-      <div class="log-head">
-        <span class="log-meta">${r.by} · ${r.createdAt ? new Date(r.createdAt.seconds*1000).toLocaleDateString('fr-BE') : ''}</span>
-        <span class="${r.status === 'new' ? 'log-status-new' : 'log-status-done'}">${r.status === 'new' ? 'Nouveau' : 'Traité'}</span>
-      </div>
-      <div class="log-msg">${r.message}</div>
-      ${isAdmin() ? `<div style="display:flex;gap:8px;margin-top:8px">
-        ${r.status === 'new' ? `<button class="btn-action btn-finish" style="flex:none;padding:6px 12px" onclick="markLogDone('${r.firestoreId}')">Marquer traité</button>` : ''}
-        <button class="btn-action btn-del" style="flex:none;padding:6px 12px" onclick="deleteLog('${r.firestoreId}')">Supprimer</button>
-      </div>` : ''}
-    </div>`).join('');
+/* ══════════════════════════════════════════════════════════════
+   DELETE LOGIC
+   ══════════════════════════════════════════════════════════════ */
+async function handleDelete(interId, client, date, vehicle) {
+  if (isAdmin()) {
+    if (!confirm('Supprimer cette intervention ?')) return;
+    await purgeIntervention(interId);
+  } else {
+    const already = store.delRequests.find(r => r.interId === interId);
+    if (already) { alert('Demande déjà envoyée. En attente de Wolfgang.'); return; }
+    await addDoc(collection(db, 'delRequests'), {
+      interId, client, date, vehicle: vehicle || '—',
+      requestedBy: userName, requestedByUid: uid, requestedAt: serverTimestamp(),
+    });
+    alert('Demande envoyée à Wolfgang.');
+  }
 }
 
-// SUPPRESSION
-window.requestDelete = async function(fid, client, date, vehicle) {
-  if (localDelRequests.find(r => r.interId === fid)) { alert('Demande déjà envoyée. En attente de Wolfgang.'); return; }
-  await addDoc(collection(db, 'delRequests'), { interId: fid, client, date, vehicle: vehicle||'—', requestedBy: CU_NAME, requestedByUid: CU_UID, requestedAt: serverTimestamp() });
-  alert('Demande envoyée à Wolfgang.');
-};
-
-window.adminDelete = async function(delFid, interFid) {
+async function adminDelete(delId, interId) {
   if (!confirm('Confirmer la suppression définitive ?')) return;
-  setSyncState('syncing');
-  try {
-    await deleteDoc(doc(db, 'interventions', interFid));
-    const cs = await getDocs(query(collection(db, 'calendar'), where('interRef', '==', interFid)));
-    for (const d of cs.docs) await deleteDoc(doc(db, 'calendar', d.id));
-    await deleteDoc(doc(db, 'delRequests', delFid));
-    setSyncState('ok');
-  } catch(e) { setSyncState('error'); alert('Erreur: ' + e.message); }
-};
-
-window.denyDelete = async function(fid) { await deleteDoc(doc(db, 'delRequests', fid)); };
-
-window.directDelete = async function(fid) {
-  if (!confirm('Supprimer cette intervention ?')) return;
-  setSyncState('syncing');
-  try {
-    // Delete media from R2
-    const inter = localInterventions.find(i => i.firestoreId === fid);
-    if (inter) {
-      const allMedia = [...(inter.photosAvant||[]), ...(inter.photosApres||[])];
-      for (const m of allMedia) { try { await deleteFromR2(m.key); } catch(e){} }
-    }
-    await deleteDoc(doc(db, 'interventions', fid));
-    const cs = await getDocs(query(collection(db, 'calendar'), where('interRef', '==', fid)));
-    for (const d of cs.docs) await deleteDoc(doc(db, 'calendar', d.id));
-    const ds = await getDocs(query(collection(db, 'delRequests'), where('interId', '==', fid)));
-    for (const d of ds.docs) await deleteDoc(doc(db, 'delRequests', d.id));
-    setSyncState('ok');
-  } catch(e) { setSyncState('error'); alert('Erreur: ' + e.message); }
-};
-
-// MEDIA DELETE from R2
-async function deleteFromR2(key) {
-  const url = `${R2_ENDPOINT}/${R2_BUCKET}/${key}`;
-  const now = new Date();
-  const dateStr = now.toISOString().replace(/[:-]|\.\d{3}/g,'').slice(0,15)+'Z';
-  const dateShort = dateStr.slice(0,8);
-  const payloadHash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-  const headers = { 'host': new URL(R2_ENDPOINT).host, 'x-amz-content-sha256': payloadHash, 'x-amz-date': dateStr };
-  const sh = Object.keys(headers).sort().join(';');
-  const ch = Object.keys(headers).sort().map(k=>k+':'+headers[k]).join('\n')+'\n';
-  const cr = ['DELETE','/'+R2_BUCKET+'/'+key,'',ch,sh,payloadHash].join('\n');
-  const scope = `${dateShort}/auto/s3/aws4_request`;
-  const sts = ['AWS4-HMAC-SHA256',dateStr,scope,await sha256hex(cr)].join('\n');
-  const sk = await getSigningKey(R2_SECRET_KEY,dateShort,'auto','s3');
-  const sig = await hmacHex(sk,sts);
-  await fetch(url,{method:'DELETE',headers:{...headers,'Authorization':`AWS4-HMAC-SHA256 Credential=${R2_ACCESS_KEY}/${scope}, SignedHeaders=${sh}, Signature=${sig}`}});
+  await purgeIntervention(interId);
+  await deleteDoc(doc(db, 'delRequests', delId));
 }
 
-window.deleteMediaFromInter = async function(fid, key, type) {
-  if (!isAdmin()) return;
-  if (!confirm('Supprimer ce média ?')) return;
+async function purgeIntervention(interId) {
+  setSync('busy');
   try {
-    await deleteFromR2(key);
-    const inter = localInterventions.find(i => i.firestoreId === fid);
-    if (!inter) return;
-    const field = type === 'avant' ? 'photosAvant' : 'photosApres';
-    const updated = (inter[field]||[]).filter(m => m.key !== key);
-    await updateDoc(doc(db, 'interventions', fid), { [field]: updated });
-    openDetail(fid);
-  } catch(e) { alert('Erreur suppression média.'); }
-};
-
-// STATUS
-window.startInter = function(fid, client) {
-  activeId = fid;
-  document.getElementById('avant-sub').textContent = client + ' — État avant intervention.';
-  pendingFiles.avant = []; document.getElementById('prev-avant').innerHTML = '';
-  document.getElementById('avant-err').style.display = 'none';
-  openM('m-avant');
-};
-window.finishInter = function(fid, client) {
-  activeId = fid;
-  document.getElementById('apres-sub').textContent = client + ' — Résultat après intervention.';
-  pendingFiles.apres = []; document.getElementById('prev-apres').innerHTML = '';
-  document.getElementById('apres-err').style.display = 'none';
-  openM('m-apres');
-};
-
-window.confirmAvant = async function() {
-  if (pendingFiles.avant.length === 0) {
-    document.getElementById('avant-err').style.display = 'block'; return;
-  }
-  const btn = document.getElementById('btn-avant');
-  btn.disabled = true; btn.textContent = 'Upload...';
-  setSyncState('syncing');
-  try {
-    const uploaded = [];
-    for (const f of pendingFiles.avant) { uploaded.push(await uploadToR2(f.file, `avant/${activeId}`)); }
-    await updateDoc(doc(db, 'interventions', activeId), { status: 'started', photosAvant: uploaded });
-    setSyncState('ok'); closeM('m-avant'); pendingFiles.avant = [];
-  } catch(e) { setSyncState('error'); alert('Erreur upload: '+e.message); }
-  btn.disabled = false; btn.textContent = 'Commencer →';
-};
-
-window.confirmApres = async function() {
-  if (pendingFiles.apres.length === 0) {
-    document.getElementById('apres-err').style.display = 'block'; return;
-  }
-  const btn = document.getElementById('btn-apres');
-  btn.disabled = true; btn.textContent = 'Upload...';
-  setSyncState('syncing');
-  try {
-    const uploaded = [];
-    for (const f of pendingFiles.apres) { uploaded.push(await uploadToR2(f.file, `apres/${activeId}`)); }
-    await updateDoc(doc(db, 'interventions', activeId), { status: 'done', photosApres: uploaded });
-    setSyncState('ok'); closeM('m-apres'); pendingFiles.apres = []; activeId = null;
-  } catch(e) { setSyncState('error'); alert('Erreur upload: '+e.message); }
-  btn.disabled = false; btn.textContent = 'Terminer ✓';
-};
-
-window.handleFiles = function(e, type) {
-  Array.from(e.target.files).forEach(file => {
-    const url = URL.createObjectURL(file);
-    const isVid = file.type.startsWith('video');
-    pendingFiles[type].push({ url, isVid, file });
-    const grid = document.getElementById('prev-'+type);
-    const div = document.createElement('div'); div.className = 'prev-item';
-    if (isVid) {
-      const v = document.createElement('video'); v.src = url;
-      v.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
-      div.appendChild(v);
-      const b = document.createElement('span'); b.className = 'type-badge'; b.textContent = 'Vidéo'; div.appendChild(b);
-    } else {
-      const img = document.createElement('img'); img.src = url;
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
-      div.appendChild(img);
+    const inter = store.interventions.find(i => i.id === interId);
+    if (inter) {
+      for (const m of [...(inter.photosAvant || []), ...(inter.photosApres || [])]) {
+        try { await r2Delete(m.key); } catch { /* non-blocking */ }
+      }
     }
-    const del = document.createElement('button'); del.className = 'prev-del'; del.textContent = '×';
-    const idx = pendingFiles[type].length-1;
-    del.onclick = () => { pendingFiles[type].splice(idx,1); div.remove(); };
-    div.appendChild(del); grid.appendChild(div);
+    await deleteDoc(doc(db, 'interventions', interId));
+    const calSnap = await getDocs(query(collection(db, 'calendar'), where('interRef', '==', interId)));
+    for (const d of calSnap.docs) await deleteDoc(doc(db, 'calendar', d.id));
+    setSync('ok');
+  } catch (err) {
+    setSync('error');
+    alert('Erreur suppression : ' + err.message);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PHOTO MODALS
+   ══════════════════════════════════════════════════════════════ */
+function preparePhotoModal(type, interId, client) {
+  activeInterId = interId;
+  const modalId = type === 'avant' ? 'modal-avant' : 'modal-apres';
+  document.getElementById(type === 'avant' ? 'avant-label' : 'apres-label').textContent =
+    client + ' — ' + (type === 'avant' ? 'État avant intervention.' : 'Résultat après intervention.');
+  pendingFiles[type] = [];
+  document.getElementById(type === 'avant' ? 'preview-avant' : 'preview-apres').innerHTML = '';
+  document.getElementById(type === 'avant' ? 'err-avant' : 'err-apres').style.display = 'none';
+  openModal(modalId);
+}
+
+document.getElementById('file-avant').addEventListener('change', e => addFiles(e, 'avant'));
+document.getElementById('file-apres').addEventListener('change', e => addFiles(e, 'apres'));
+
+function addFiles(e, type) {
+  const preview = document.getElementById('preview-' + type);
+  Array.from(e.target.files).forEach(file => {
+    const url   = URL.createObjectURL(file);
+    const isVid = file.type.startsWith('video');
+    const idx   = pendingFiles[type].length;
+    pendingFiles[type].push({ url, isVid, file });
+
+    const wrap = document.createElement('div');
+    wrap.className = 'upload-thumb';
+    const media = isVid ? document.createElement('video') : document.createElement('img');
+    media.src = url;
+    wrap.appendChild(media);
+
+    const del = document.createElement('button');
+    del.className = 'upload-thumb-del';
+    del.textContent = '×';
+    del.onclick = () => { pendingFiles[type].splice(idx, 1); wrap.remove(); };
+    wrap.appendChild(del);
+    preview.appendChild(wrap);
   });
   e.target.value = '';
-};
+}
 
+async function confirmPhotos(type) {
+  const errEl = document.getElementById(type === 'avant' ? 'err-avant' : 'err-apres');
+  if (pendingFiles[type].length === 0) { errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
 
-// SHARE MEDIA - native iOS share sheet
-window.shareMedia = async function(url, type, name) {
+  const btn = document.getElementById(type === 'avant' ? 'btn-confirm-avant' : 'btn-confirm-apres');
+  btn.disabled = true; btn.textContent = 'Upload…';
+  setSync('busy');
+
   try {
-    // Fetch the file as blob
-    const btn = event.target;
-    btn.textContent = '...';
-    btn.disabled = true;
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const ext = type === 'video' ? (name.includes('.') ? '' : '.mp4') : (name.includes('.') ? '' : '.jpg');
-    const filename = name + ext;
-    const file = new File([blob], filename, { type: blob.type });
+    const uploaded = [];
+    for (const f of pendingFiles[type]) uploaded.push(await r2Upload(f.file, `${type}/${activeInterId}`));
+    const field = type === 'avant' ? 'photosAvant' : 'photosApres';
+    const newStatus = type === 'avant' ? 'started' : 'done';
+    await updateDoc(doc(db, 'interventions', activeInterId), { status: newStatus, [field]: uploaded });
+    setSync('ok');
+    closeModal(type === 'avant' ? 'modal-avant' : 'modal-apres');
+    pendingFiles[type] = [];
+    if (type === 'apres') activeInterId = null;
+  } catch (err) {
+    setSync('error');
+    alert('Erreur upload : ' + err.message);
+  }
 
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        files: [file],
-        title: 'Lumera — ' + filename
-      });
-    } else if (navigator.share) {
-      // Fallback: share URL
-      await navigator.share({ url, title: 'Lumera média' });
+  btn.disabled = false; btn.textContent = type === 'avant' ? 'Commencer →' : 'Terminer ✓';
+}
+
+document.getElementById('btn-confirm-avant').addEventListener('click', () => confirmPhotos('avant'));
+document.getElementById('btn-confirm-apres').addEventListener('click', () => confirmPhotos('apres'));
+
+/* ══════════════════════════════════════════════════════════════
+   MEDIA — share & delete
+   ══════════════════════════════════════════════════════════════ */
+async function shareMedia(url, type, name) {
+  try {
+    const res  = await fetch(url);
+    const blob = await res.blob();
+    const file = new File([blob], name, { type: blob.type });
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Lumera — ' + name });
     } else {
-      // Last resort: open in new tab
       window.open(url, '_blank');
     }
-    btn.textContent = '⬇ Enregistrer';
-    btn.disabled = false;
-  } catch(e) {
-    if (e.name !== 'AbortError') {
-      // User cancelled or error — open in new tab as fallback
-      window.open(url, '_blank');
-    }
-    if(event.target) { event.target.textContent = '⬇ Enregistrer'; event.target.disabled = false; }
+  } catch (err) {
+    if (err.name !== 'AbortError') window.open(url, '_blank');
   }
-};
-
-// R2 UPLOAD
-async function uploadToR2(file, folder) {
-  const key = `${folder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-  const url = `${R2_ENDPOINT}/${R2_BUCKET}/${key}`;
-  const now = new Date();
-  const dateStr = now.toISOString().replace(/[:-]|\.\d{3}/g,'').slice(0,15)+'Z';
-  const dateShort = dateStr.slice(0,8);
-  const payloadHash = 'UNSIGNED-PAYLOAD';
-  const headers = { 'host': new URL(R2_ENDPOINT).host, 'x-amz-content-sha256': payloadHash, 'x-amz-date': dateStr, 'content-type': file.type||'application/octet-stream' };
-  const sh = Object.keys(headers).sort().join(';');
-  const ch = Object.keys(headers).sort().map(k=>k+':'+headers[k]).join('\n')+'\n';
-  const cr = ['PUT','/'+R2_BUCKET+'/'+key,'',ch,sh,payloadHash].join('\n');
-  const scope = `${dateShort}/auto/s3/aws4_request`;
-  const sts = ['AWS4-HMAC-SHA256',dateStr,scope,await sha256hex(cr)].join('\n');
-  const sk = await getSigningKey(R2_SECRET_KEY,dateShort,'auto','s3');
-  const sig = await hmacHex(sk,sts);
-  const res = await fetch(url,{method:'PUT',headers:{...headers,'Authorization':`AWS4-HMAC-SHA256 Credential=${R2_ACCESS_KEY}/${scope}, SignedHeaders=${sh}, Signature=${sig}`},body:file});
-  if (!res.ok) throw new Error('R2 upload failed: '+res.status);
-  return { key, url: `${R2_PUBLIC_URL}/${key}`, type: file.type.startsWith('video')?'video':'image', name: file.name };
 }
 
-async function sha256hex(msg) {
-  const buf = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(msg));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-async function hmacHex(key,msg) {
-  const sig = await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(msg));
-  return Array.from(new Uint8Array(sig)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-async function getSigningKey(secret,date,region,service) {
-  let key = await crypto.subtle.importKey('raw',new TextEncoder().encode('AWS4'+secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
-  for (const msg of [date,region,service,'aws4_request']) {
-    const sig = await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(msg));
-    key = await crypto.subtle.importKey('raw',sig,{name:'HMAC',hash:'SHA-256'},false,['sign']);
-  }
-  return key;
+async function deleteMedia(interId, key, type) {
+  if (!isAdmin() || !confirm('Supprimer ce média ?')) return;
+  try {
+    await r2Delete(key);
+    const inter  = store.interventions.find(i => i.id === interId);
+    const field  = type === 'avant' ? 'photosAvant' : 'photosApres';
+    const updated = (inter[field] || []).filter(m => m.key !== key);
+    await updateDoc(doc(db, 'interventions', interId), { [field]: updated });
+    openDetail(interId); // refresh
+  } catch { alert('Erreur suppression média.'); }
 }
 
-// FICHE DETAIL
-window.openDetail = function(fid) {
-  const i = localInterventions.find(x => x.firestoreId === fid);
-  if (!i) return;
-  const isPendingDel = localDelRequests.some(r => r.interId === fid);
-  const statusLabel = i.status === 'done' ? '✓ Terminée' : i.status === 'started' ? 'En cours' : 'En attente';
-  const statusClass = i.status === 'done' ? 'badge-done' : i.status === 'started' ? 'badge-started' : 'badge-pending';
-  const creatorColor = i.createdBy === 'Wolfgang' ? 'var(--w-color)' : 'var(--z-color)';
+/* ══════════════════════════════════════════════════════════════
+   LOGISTIQUE
+   ══════════════════════════════════════════════════════════════ */
+async function sendLogRequest() {
+  const msg = document.getElementById('log-input').value.trim();
+  if (!msg) { alert('Écris un message avant d\'envoyer.'); return; }
+  await addDoc(collection(db, 'logRequests'), {
+    message: msg, by: userName, byUid: uid, status: 'new', createdAt: serverTimestamp(),
+  });
+  document.getElementById('log-input').value = '';
+  alert('Demande envoyée à Wolfgang.');
+}
 
-  // Boutons d'action
-  let actionBtns = '';
-  if (i.status === 'pending') actionBtns += `<button class="btn-action btn-start" onclick="startInter('${fid}','${i.client}');closeM('m-detail')">Commencer</button>`;
-  if (i.status === 'started') actionBtns += `<button class="btn-action btn-finish" onclick="finishInter('${fid}','${i.client}');closeM('m-detail')">Terminer</button>`;
-  if (isAdmin()) {
-    actionBtns += `<button class="btn-action btn-del" onclick="directDelete('${fid}');closeM('m-detail')">Supprimer</button>`;
-  } else if (isPendingDel) {
-    actionBtns += `<button class="btn-action btn-del-pending" disabled>En attente admin</button>`;
+/* ══════════════════════════════════════════════════════════════
+   RENDER — DASHBOARD
+   ══════════════════════════════════════════════════════════════ */
+function renderDashboard() {
+  const now = new Date(); const m = now.getMonth(); const y = now.getFullYear();
+  const today = fmt(now);
+  const thisMonth = store.interventions.filter(i => {
+    const d = new Date(i.date);
+    return d.getMonth() === m && d.getFullYear() === y;
+  });
+  const rev = thisMonth.reduce((a, b) => a + (b.total || b.price || 0), 0);
+  document.getElementById('st-count').textContent = thisMonth.length;
+  document.getElementById('st-rev').textContent   = rev;
+  document.getElementById('st-today').textContent = store.calendar.filter(e => e.date === today).length;
+  document.getElementById('st-avg').textContent   = thisMonth.length ? Math.round(rev / thisMonth.length) : 79;
+
+  /* Delete requests section */
+  const wrap = document.getElementById('del-requests-wrap');
+  if (isAdmin() && store.delRequests.length > 0) {
+    wrap.style.display = 'block';
+    document.getElementById('del-requests-list').innerHTML = store.delRequests.map(r => `
+      <div class="del-req">
+        <p class="del-req-title">Supprimer : ${r.client}</p>
+        <p class="del-req-sub">${fmtDate(r.date)} · ${r.vehicle} · Demande de ${r.requestedBy}</p>
+        <div class="actions">
+          <button class="btn btn-red"   data-action="admin-delete" data-del="${r.id}" data-inter="${r.interId}">Confirmer</button>
+          <button class="btn btn-ghost" data-action="deny-delete"  data-id="${r.id}">Refuser</button>
+        </div>
+      </div>`).join('');
   } else {
-    actionBtns += `<button class="btn-action btn-del" onclick="requestDelete('${fid}','${i.client}','${i.date}','${i.vehicle||''}');closeM('m-detail')">Supprimer</button>`;
+    wrap.style.display = 'none';
   }
 
-  // Galerie
-  const renderMedia = (mediaArr, type) => {
-    if (!mediaArr || !mediaArr.length) return `<div class="empty-media">Aucun média</div>`;
-    return `
-    <div class="media-grid">${mediaArr.map((m,idx) => `
+  /* Recent interventions */
+  const el = document.getElementById('dash-recent');
+  const recent = store.interventions.slice(0, 4);
+  el.innerHTML = recent.length ? recent.map(i => interCard(i, true)).join('') :
+    '<p style="color:var(--text2);font-size:14px;text-align:center;padding:20px 0">Aucune intervention enregistrée</p>';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RENDER — INTERVENTIONS
+   ══════════════════════════════════════════════════════════════ */
+function renderInterventions(filter = 'all') {
+  const list = filter === 'all' ? store.interventions : store.interventions.filter(i => i.status === filter);
+  const el   = document.getElementById('inter-list');
+  el.innerHTML = list.length ? list.map(i => interCard(i, false)).join('') :
+    '<p style="color:var(--text2);font-size:14px;text-align:center;padding:20px 0">Aucune intervention</p>';
+}
+
+function interCard(inter, compact) {
+  const isPendingDel = store.delRequests.some(r => r.interId === inter.id);
+  const dotColor     = inter.createdBy === 'Wolfgang' ? 'var(--w)' : 'var(--z)';
+  const sub          = [inter.address, inter.vehicle].filter(Boolean).join(' · ');
+  const total        = inter.total || inter.price || 0;
+
+  const statusBadge = inter.status === 'done'
+    ? `<span class="badge badge-done">✓ Terminée</span>`
+    : inter.status === 'started'
+    ? `<span class="badge badge-started">En cours</span>`
+    : `<span class="badge badge-pending">En attente</span>`;
+
+  let actionBtns = '';
+  if (!compact) {
+    if (inter.status === 'pending')
+      actionBtns += `<button class="btn btn-gold"  data-action="start-inter"  data-id="${inter.id}" data-client="${inter.client}">Commencer</button>`;
+    if (inter.status === 'started')
+      actionBtns += `<button class="btn btn-green" data-action="finish-inter" data-id="${inter.id}" data-client="${inter.client}">Terminer</button>`;
+    if (isAdmin())
+      actionBtns += `<button class="btn btn-red"   data-action="delete-inter" data-id="${inter.id}" data-client="${inter.client}" data-date="${inter.date}" data-vehicle="${inter.vehicle||''}">Supprimer</button>`;
+    else if (isPendingDel)
+      actionBtns += `<button class="btn btn-outline" disabled>En attente admin</button>`;
+    else
+      actionBtns += `<button class="btn btn-red"   data-action="delete-inter" data-id="${inter.id}" data-client="${inter.client}" data-date="${inter.date}" data-vehicle="${inter.vehicle||''}">Supprimer</button>`;
+  }
+
+  return `
+    <div class="card" data-action="view-inter" data-id="${inter.id}">
+      ${isPendingDel && !compact ? `<p class="pending-banner">⏳ Suppression en attente de validation admin</p>` : ''}
+      <div class="card-head">
+        <div class="card-left">
+          <p class="card-name">${inter.client}</p>
+          ${sub ? `<p class="card-sub">${sub}</p>` : ''}
+          <div class="creator">
+            <span class="creator-dot" style="background:${dotColor}"></span>
+            <span>${inter.createdBy || '—'}</span>
+          </div>
+        </div>
+        <div class="card-right">
+          <span class="card-price">${total}€</span>
+          ${statusBadge}
+        </div>
+      </div>
+      <div class="card-meta"><span>${fmtDate(inter.date)} ${inter.time}</span></div>
+      ${actionBtns ? `<div class="actions">${actionBtns}</div>` : ''}
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RENDER — DETAIL MODAL
+   ══════════════════════════════════════════════════════════════ */
+function openDetail(interId) {
+  const inter = store.interventions.find(i => i.id === interId);
+  if (!inter) return;
+
+  const isPendingDel = store.delRequests.some(r => r.interId === interId);
+  const dotColor     = inter.createdBy === 'Wolfgang' ? 'var(--w)' : 'var(--z)';
+  const statusLabel  = inter.status === 'done' ? '✓ Terminée' : inter.status === 'started' ? 'En cours' : 'En attente';
+  const statusClass  = inter.status === 'done' ? 'badge-done' : inter.status === 'started' ? 'badge-started' : 'badge-pending';
+
+  let actionBtns = '';
+  if (inter.status === 'pending')
+    actionBtns += `<button class="btn btn-gold"  data-action="start-inter"  data-id="${inter.id}" data-client="${inter.client}">Commencer</button>`;
+  if (inter.status === 'started')
+    actionBtns += `<button class="btn btn-green" data-action="finish-inter" data-id="${inter.id}" data-client="${inter.client}">Terminer</button>`;
+  if (isAdmin())
+    actionBtns += `<button class="btn btn-red"   data-action="delete-inter" data-id="${inter.id}" data-client="${inter.client}" data-date="${inter.date}" data-vehicle="${inter.vehicle||''}">Supprimer</button>`;
+  else if (isPendingDel)
+    actionBtns += `<button class="btn btn-outline" disabled>En attente admin</button>`;
+  else
+    actionBtns += `<button class="btn btn-red"   data-action="delete-inter" data-id="${inter.id}" data-client="${inter.client}" data-date="${inter.date}" data-vehicle="${inter.vehicle||''}">Supprimer</button>`;
+
+  const mediaBlock = (arr, type) => {
+    if (!arr || !arr.length) return '<p class="empty-media">Aucun média</p>';
+    return `<div class="media-grid">${arr.map(m => `
       <div class="media-item">
         ${m.type === 'video'
-          ? `<video src="${m.url}" style="width:100%;height:100%;object-fit:cover"></video><span class="media-type">Vidéo</span>`
+          ? `<video src="${m.url}" style="width:100%;height:100%;object-fit:cover"></video><span class="media-type-badge">Vidéo</span>`
           : `<img src="${m.url}" alt="photo">`}
-        <button onclick="event.stopPropagation();shareMedia('${m.url}','${m.type||'image'}','${m.name||'lumera_media'}')"
-          style="position:absolute;bottom:4px;left:4px;right:${isAdmin()?'28px':'4px'};background:rgba(212,160,23,0.92);border:none;border-radius:6px;padding:4px 6px;font-size:11px;font-weight:600;color:#000;cursor:pointer;text-align:center">
-          ⬇ Enregistrer
-        </button>
-        ${isAdmin() ? `<button class="media-del" onclick="event.stopPropagation();deleteMediaFromInter('${fid}','${m.key}','${type}')">×</button>` : ''}
+        <button class="media-save-btn" data-action="save-media" data-url="${m.url}" data-mtype="${m.type||'image'}" data-name="${m.name||'lumera'}">⬇ Enregistrer</button>
+        ${isAdmin() ? `<button class="media-del-btn" data-action="del-media" data-fid="${inter.id}" data-key="${m.key}" data-type="${type}">×</button>` : ''}
       </div>`).join('')}</div>`;
   };
 
-  document.getElementById('detail-body').innerHTML = `
+  document.getElementById('detail-content').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
       <div>
-        <div style="font-family:var(--ff2);font-size:1.6rem;letter-spacing:0.05em">${i.client}</div>
-        <div style="font-size:12px;margin-top:4px;display:flex;align-items:center;gap:6px">
-          <span style="width:8px;height:8px;border-radius:50%;background:${creatorColor};display:inline-block"></span>
-          <span style="color:var(--text2)">Créé par ${i.createdBy}</span>
+        <h2 style="font-family:var(--ff2);font-size:1.6rem;letter-spacing:.05em">${inter.client}</h2>
+        <div class="creator" style="margin-top:4px">
+          <span class="creator-dot" style="background:${dotColor}"></span>
+          <span>Créé par ${inter.createdBy}</span>
         </div>
       </div>
       <span class="badge ${statusClass}">${statusLabel}</span>
     </div>
-
-    ${isPendingDel ? `<div class="pending-banner">⏳ Suppression en attente de validation admin</div>` : ''}
+    ${isPendingDel ? `<p class="pending-banner">⏳ Suppression en attente de validation admin</p>` : ''}
 
     <div class="detail-section">
-      <div class="detail-label">Client</div>
-      ${i.phone ? `<div class="detail-row"><span class="detail-key">Téléphone</span><a href="tel:${i.phone}" class="call-btn">📞 ${i.phone}</a></div>` : ''}
-      <div class="detail-row"><span class="detail-key">Véhicule</span><span class="detail-val">${i.vehicle||'—'}</span></div>
-      <div class="detail-row"><span class="detail-key">Adresse</span><span class="detail-val">${i.address||'—'}</span></div>
+      <p class="detail-label">Client</p>
+      ${inter.phone ? `<div class="detail-row"><span class="detail-key">Téléphone</span><a href="tel:${inter.phone}" class="call-link">📞 ${inter.phone}</a></div>` : ''}
+      <div class="detail-row"><span class="detail-key">Véhicule</span><span class="detail-val">${inter.vehicle || '—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Adresse</span><span class="detail-val">${inter.address || '—'}</span></div>
     </div>
 
     <div class="detail-section">
-      <div class="detail-label">Intervention</div>
-      <div class="detail-row"><span class="detail-key">Date</span><span class="detail-val">${formatDate(i.date)} ${i.time}</span></div>
-      <div class="detail-row"><span class="detail-key">État phares</span><span class="detail-val">${i.state==='bad'?'Très abîmés':'Standard'}</span></div>
-      <div class="detail-row"><span class="detail-key">Déplacement</span><span class="detail-val">${i.deplacement||'inclus'} ${i.prixDeplacement>0?'('+i.prixDeplacement+'€)':''}</span></div>
-      <div class="detail-row"><span class="detail-key">Prix phares</span><span class="detail-val">${i.price||79}€</span></div>
-      <div class="detail-row" style="font-weight:600"><span class="detail-key">Total</span><span class="detail-val" style="color:var(--gold);font-family:var(--ff2);font-size:1.2rem">${i.total||i.price||79}€</span></div>
-    </div>
-
-    ${i.notes ? `<div class="detail-section"><div class="detail-label">Notes</div><div class="notebox">${i.notes}</div></div>` : ''}
-
-    <div class="detail-section">
-      <div class="detail-label">Photos AVANT</div>
-      ${renderMedia(i.photosAvant, 'avant')}
-    </div>
-    <div class="detail-section">
-      <div class="detail-label">Photos APRÈS</div>
-      ${renderMedia(i.photosApres, 'apres')}
-    </div>
-
-    <div class="action-row" style="margin-top:8px">${actionBtns}</div>
-  `;
-  openM('m-detail');
-};
-
-// RENDER DASHBOARD
-function renderDash() {
-  const now = new Date(); const m = now.getMonth(); const y = now.getFullYear();
-  const ts = fmtD(now);
-  const tm = localInterventions.filter(i => { const d = new Date(i.date); return d.getMonth()===m && d.getFullYear()===y; });
-  const rev = tm.reduce((a,b) => a+(b.total||b.price||0), 0);
-  document.getElementById('s-count').textContent = tm.length;
-  document.getElementById('s-rev').textContent = rev;
-  document.getElementById('s-today').textContent = localCalEvents.filter(e => e.date===ts).length;
-  document.getElementById('s-avg').textContent = tm.length ? Math.round(rev/tm.length) : 79;
-
-  const sect = document.getElementById('del-requests-section');
-  if (isAdmin() && localDelRequests.length > 0) {
-    sect.style.display = 'block';
-    document.getElementById('del-requests-list').innerHTML = localDelRequests.map(r => `
-      <div class="del-request">
-        <div class="dr-title">Supprimer : ${r.client}</div>
-        <div class="dr-sub">${formatDate(r.date)} · ${r.vehicle} · Demande de ${r.requestedBy}</div>
-        <div class="dr-actions">
-          <button class="dr-approve" onclick="adminDelete('${r.firestoreId}','${r.interId}')">Confirmer</button>
-          <button class="dr-deny" onclick="denyDelete('${r.firestoreId}')">Refuser</button>
-        </div>
-      </div>`).join('');
-  } else sect.style.display = 'none';
-
-  const el = document.getElementById('dash-recent');
-  const recent = localInterventions.slice(0,4);
-  if (!recent.length) { el.innerHTML = '<div style="color:var(--text2);font-size:14px;text-align:center;padding:20px 0">Aucune intervention enregistrée</div>'; return; }
-  el.innerHTML = recent.map(i => iCard(i, true)).join('');
-}
-
-function renderInter(f='all') {
-  let list = f==='all' ? localInterventions : localInterventions.filter(i => i.status===f);
-  const el = document.getElementById('inter-list');
-  if (!list.length) { el.innerHTML = '<div style="color:var(--text2);font-size:14px;text-align:center;padding:20px 0">Aucune intervention</div>'; return; }
-  el.innerHTML = list.map(i => iCard(i, false)).join('');
-}
-
-function iCard(i, compact) {
-  const isPendingDel = localDelRequests.some(r => r.interId === i.firestoreId);
-  const sb = i.status==='done' ? `<span class="badge badge-done">✓ Terminée</span>` : i.status==='started' ? `<span class="badge badge-started">En cours</span>` : `<span class="badge badge-pending">En attente</span>`;
-  const creatorColor = i.createdBy === 'Wolfgang' ? 'var(--w-color)' : 'var(--z-color)';
-  const sub = [i.address, i.vehicle].filter(Boolean).join(' · ');
-  const total = i.total || i.price || 0;
-
-  let actionBtns = '';
-  if (!compact) {
-    if (i.status === 'pending') actionBtns += `<button class="btn-action btn-start" onclick="event.stopPropagation();startInter('${i.firestoreId}','${i.client}')">Commencer</button>`;
-    if (i.status === 'started') actionBtns += `<button class="btn-action btn-finish" onclick="event.stopPropagation();finishInter('${i.firestoreId}','${i.client}')">Terminer</button>`;
-    if (isAdmin()) actionBtns += `<button class="btn-action btn-del" onclick="event.stopPropagation();directDelete('${i.firestoreId}')">Supprimer</button>`;
-    else if (isPendingDel) actionBtns += `<button class="btn-action btn-del-pending" disabled>En attente admin</button>`;
-    else actionBtns += `<button class="btn-action btn-del" onclick="event.stopPropagation();requestDelete('${i.firestoreId}','${i.client}','${i.date}','${i.vehicle||''}')">Supprimer</button>`;
-  }
-
-  return `<div class="icard" onclick="openDetail('${i.firestoreId}')">
-    ${isPendingDel && !compact ? `<div class="pending-banner">⏳ Suppression en attente de validation admin</div>` : ''}
-    <div class="icard-head">
-      <div class="icard-left">
-        <div class="ic-name">${i.client}</div>
-        ${sub ? `<div class="ic-sub">${sub}</div>` : ''}
-        <div class="creator-tag" style="margin-top:3px">
-          <span class="creator-dot" style="background:${creatorColor}"></span>
-          <span>${i.createdBy||'—'}</span>
-        </div>
-      </div>
-      <div class="icard-right">
-        <div class="ic-price">${total}€</div>
-        <div style="margin-top:2px">${sb}</div>
+      <p class="detail-label">Intervention</p>
+      <div class="detail-row"><span class="detail-key">Date</span><span class="detail-val">${fmtDate(inter.date)} ${inter.time}</span></div>
+      <div class="detail-row"><span class="detail-key">État phares</span><span class="detail-val">${inter.state === 'bad' ? 'Très abîmés' : 'Standard'}</span></div>
+      <div class="detail-row"><span class="detail-key">Déplacement</span><span class="detail-val">${inter.deplacement || 'inclus'}${inter.prixDeplacement > 0 ? ` (${inter.prixDeplacement}€)` : ''}</span></div>
+      <div class="detail-row"><span class="detail-key">Prix phares</span><span class="detail-val">${inter.price || 79}€</span></div>
+      <div class="detail-row" style="font-weight:600">
+        <span class="detail-key">Total</span>
+        <span class="detail-val" style="color:var(--gold);font-family:var(--ff2);font-size:1.2rem">${inter.total || inter.price || 79}€</span>
       </div>
     </div>
-    <div class="ic-meta"><span>${formatDate(i.date)} ${i.time}</span></div>
-    ${actionBtns ? `<div class="action-row">${actionBtns}</div>` : ''}
-  </div>`;
+
+    ${inter.notes ? `<div class="detail-section"><p class="detail-label">Notes</p><div class="notebox">${inter.notes}</div></div>` : ''}
+
+    <div class="detail-section"><p class="detail-label">Photos AVANT</p>${mediaBlock(inter.photosAvant, 'avant')}</div>
+    <div class="detail-section"><p class="detail-label">Photos APRÈS</p>${mediaBlock(inter.photosApres, 'apres')}</div>
+
+    <div class="actions">${actionBtns}</div>`;
+
+  openModal('modal-detail');
 }
 
-window.filterI = function(f, el) { document.querySelectorAll('.chip').forEach(c => c.classList.remove('active')); el.classList.add('active'); renderInter(f); };
+/* ══════════════════════════════════════════════════════════════
+   RENDER — CALENDAR
+   ══════════════════════════════════════════════════════════════ */
+const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const DAYS   = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
 
-// CALENDAR
-function renderCal() {
-  const y = calDate.getFullYear(); const m = calDate.getMonth();
-  const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  document.getElementById('cal-label').textContent = MONTHS[m]+' '+y;
-  const grid = document.getElementById('cal-grid');
-  const days = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
-  let html = days.map(d => `<div class="cal-dh">${d}</div>`).join('');
-  const first = new Date(y,m,1); const sd = (first.getDay()+6)%7;
-  const dim = new Date(y,m+1,0).getDate(); const pdim = new Date(y,m,0).getDate();
-  const tn = new Date(); const ts = fmtDate(tn.getFullYear(),tn.getMonth()+1,tn.getDate());
-  for (let i=0;i<sd;i++) html += `<div class="cal-day other">${pdim-sd+1+i}</div>`;
-  for (let d=1;d<=dim;d++) {
-    const ds = fmtDate(y,m+1,d);
-    const dayEvts = localCalEvents.filter(e => e.date===ds);
-    const hasW = dayEvts.some(e => e.by==='Wolfgang'), hasZ = dayEvts.some(e => e.by==='Zalimkhan');
-    let cls = 'cal-day'+(ds===ts?' today':'')+(selDay===ds?' sel':'');
-    if (hasW&&hasZ) cls+=' has-ev-both'; else if (hasW) cls+=' has-ev-w'; else if (hasZ) cls+=' has-ev-z';
-    html += `<div class="${cls}" onclick="selDayFn('${ds}')">${d}</div>`;
+function renderCalendar() {
+  const y = calDate.getFullYear(), m = calDate.getMonth();
+  document.getElementById('cal-month-label').textContent = `${MONTHS[m]} ${y}`;
+
+  const todayStr  = fmt(new Date());
+  const firstDay  = new Date(y, m, 1);
+  const startCell = (firstDay.getDay() + 6) % 7;
+  const daysInMon = new Date(y, m + 1, 0).getDate();
+  const prevDays  = new Date(y, m, 0).getDate();
+
+  let html = DAYS.map(d => `<div class="cal-header-cell">${d}</div>`).join('');
+
+  for (let i = 0; i < startCell; i++)
+    html += `<div class="cal-cell other-month">${prevDays - startCell + 1 + i}</div>`;
+
+  for (let d = 1; d <= daysInMon; d++) {
+    const ds      = fmt(new Date(y, m, d));
+    const dayEvts = store.calendar.filter(e => e.date === ds);
+    const hasW    = dayEvts.some(e => e.by === 'Wolfgang');
+    const hasZ    = dayEvts.some(e => e.by === 'Zalimkhan');
+
+    let cls = 'cal-cell';
+    if (ds === todayStr)    cls += ' today';
+    if (ds === selectedDay) cls += ' selected';
+
+    let dots = '';
+    if (hasW && hasZ) {
+      dots = `<span class="cal-dot" style="background:var(--w)"></span><span class="cal-dot" style="background:var(--z)"></span>`;
+      html += `<div class="${cls}" style="gap:2px;flex-direction:column" onclick="selectDay('${ds}')">${d}<div style="display:flex;gap:2px">${dots}</div></div>`;
+    } else if (hasW) {
+      html += `<div class="${cls}" onclick="selectDay('${ds}')">${d}<span class="cal-dot" style="background:var(--w)"></span></div>`;
+    } else if (hasZ) {
+      html += `<div class="${cls}" onclick="selectDay('${ds}')">${d}<span class="cal-dot" style="background:var(--z)"></span></div>`;
+    } else {
+      html += `<div class="${cls}" onclick="selectDay('${ds}')">${d}</div>`;
+    }
   }
-  const rem = (sd+dim)%7===0?0:7-(sd+dim)%7;
-  for (let i=1;i<=rem;i++) html += `<div class="cal-day other">${i}</div>`;
-  grid.innerHTML = html;
-  renderDayEvs(selDay||ts);
+
+  const remaining = (startCell + daysInMon) % 7;
+  if (remaining) for (let i = 1; i <= 7 - remaining; i++)
+    html += `<div class="cal-cell other-month">${i}</div>`;
+
+  document.getElementById('cal-grid').innerHTML = html;
+  renderDayEvents(selectedDay || todayStr);
 }
 
-function renderDayEvs(date) {
-  const evts = localCalEvents.filter(e => e.date===date);
-  const el = document.getElementById('cal-events');
-  if (!evts.length) { el.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:16px">Aucune intervention ce jour</div>'; return; }
-  el.innerHTML = evts.map(e => {
-    const uc = e.by==='Wolfgang' ? 'w' : 'z';
-    const inter = localInterventions.find(i => i.firestoreId === e.interRef);
-    return `<div class="cev cev-${uc}" onclick="${inter ? `openDetail('${e.interRef}')` : ''}">
-      <div class="ce-time-${uc}">${e.time}</div>
-      <div class="ce-name">${e.title}</div>
-      ${e.note ? `<div class="ce-detail">${e.note}</div>` : ''}
-      <span class="user-pill pill-${uc}">${e.by}</span>
-      ${inter ? `<div style="font-size:11px;color:var(--text2);margin-top:4px">Appuyer pour voir la fiche →</div>` : ''}
-    </div>`;
+window.selectDay = function(ds) { selectedDay = ds; renderCalendar(); };
+
+function renderDayEvents(date) {
+  const events = store.calendar.filter(e => e.date === date);
+  const el     = document.getElementById('cal-events-list');
+
+  if (!events.length) {
+    el.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center;padding:16px">Aucune intervention ce jour</p>';
+    return;
+  }
+
+  el.innerHTML = events.map(ev => {
+    const cls      = ev.by === 'Wolfgang' ? 'cal-event-w' : 'cal-event-z';
+    const timeCls  = ev.by === 'Wolfgang' ? 'color:var(--w)' : 'color:var(--z)';
+    const pillCls  = ev.by === 'Wolfgang' ? 'pill-w' : 'pill-z';
+    const inter    = store.interventions.find(i => i.id === ev.interRef);
+    const clickAttr = inter ? `data-action="view-inter" data-id="${inter.id}"` : '';
+    return `
+      <div class="cal-event ${cls}" ${clickAttr}>
+        <p class="cal-event-time" style="${timeCls}">${ev.time}</p>
+        <p class="cal-event-name">${ev.title}</p>
+        ${ev.note ? `<p class="cal-event-detail">${ev.note}</p>` : ''}
+        <span class="user-pill ${pillCls}">${ev.by}</span>
+        ${inter ? `<p style="font-size:11px;color:var(--text2);margin-top:4px">Appuyer pour voir la fiche →</p>` : ''}
+      </div>`;
   }).join('');
 }
 
-window.selDayFn = function(d) { selDay = d; renderCal(); };
-window.chMonth = function(dir) { calDate.setMonth(calDate.getMonth()+dir); renderCal(); };
-
-function renderChecklist() {
-  const items = ['Produits de polissage','Protecteur UV','Appareil photo (avant/après)','Facture client','Carte de visite Lumera'];
-  document.getElementById('checklist').innerHTML = items.map(it => `
-    <div class="info-row" style="cursor:pointer" onclick="toggleCheck(this)">
-      <span style="color:var(--text2);font-size:14px">${it}</span>
-      <span style="font-size:18px;color:var(--text2)" class="ck">○</span>
+/* ══════════════════════════════════════════════════════════════
+   RENDER — LOGISTIQUE
+   ══════════════════════════════════════════════════════════════ */
+function renderLogList() {
+  const el = document.getElementById('log-list');
+  if (!store.logRequests.length) {
+    el.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center;padding:16px">Aucune demande en cours</p>';
+    return;
+  }
+  el.innerHTML = store.logRequests.map(r => `
+    <div class="log-card">
+      <div class="log-meta">
+        <span>${r.by} · ${r.createdAt ? new Date(r.createdAt.seconds * 1000).toLocaleDateString('fr-BE') : ''}</span>
+        <span class="badge ${r.status === 'new' ? 'badge-new' : 'badge-done-log'}">${r.status === 'new' ? 'Nouveau' : 'Traité'}</span>
+      </div>
+      <p class="log-msg">${r.message}</p>
+      ${isAdmin() ? `
+      <div class="actions">
+        ${r.status === 'new' ? `<button class="btn btn-green" data-action="log-done"   data-id="${r.id}">Marquer traité</button>` : ''}
+        <button class="btn btn-red" data-action="log-delete" data-id="${r.id}">Supprimer</button>
+      </div>` : ''}
     </div>`).join('');
 }
-window.toggleCheck = function(row) { const ck=row.querySelector('.ck'); const on=ck.textContent==='✓'; ck.textContent=on?'○':'✓'; ck.style.color=on?'var(--text2)':'var(--gold)'; };
 
-window.openMediaFullscreen = function(url, type) {
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:#000;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center';
-  const close = document.createElement('button');
-  close.textContent = '✕';
-  close.style.cssText = 'position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:18px;cursor:pointer;z-index:10';
-  close.onclick = () => overlay.remove();
-  const openBtn = document.createElement('a');
-  openBtn.href = url; openBtn.target = '_blank'; openBtn.rel = 'noopener';
-  openBtn.textContent = '⤢ Ouvrir dans un nouvel onglet';
-  openBtn.style.cssText = 'position:absolute;bottom:32px;background:rgba(212,160,23,0.9);color:#000;padding:10px 20px;border-radius:20px;font-family:var(--ff);font-size:14px;font-weight:600;text-decoration:none';
-  const hint = document.createElement('div');
-  hint.textContent = type==='video' ? 'Appuie sur ⤢ → appui long → "Télécharger le lien"' : 'Appui long sur la photo → "Ajouter à la bibliothèque de photos"';
-  hint.style.cssText = 'position:absolute;bottom:90px;color:rgba(255,255,255,0.6);font-size:12px;text-align:center;padding:0 20px';
-  if (type==='video') {
-    const v = document.createElement('video');
-    v.src = url; v.controls = true; v.style.cssText = 'max-width:100%;max-height:80vh';
-    overlay.appendChild(v);
-  } else {
-    const img = document.createElement('img');
-    img.src = url; img.style.cssText = 'max-width:100%;max-height:80vh;object-fit:contain';
-    overlay.appendChild(img);
+/* ══════════════════════════════════════════════════════════════
+   CHECKLIST
+   ══════════════════════════════════════════════════════════════ */
+function renderChecklist() {
+  const items = ['Produits de polissage','Protecteur UV','Appareil photo (avant/après)','Facture client','Carte de visite Lumera'];
+  document.getElementById('checklist').innerHTML = items.map(item => `
+    <div class="info-row" style="cursor:pointer" onclick="this.querySelector('.ck').textContent === '○' ? (this.querySelector('.ck').textContent='✓',this.querySelector('.ck').style.color='var(--gold)') : (this.querySelector('.ck').textContent='○',this.querySelector('.ck').style.color='var(--text2)')">
+      <span style="color:var(--text2);font-size:14px">${item}</span>
+      <span class="ck" style="font-size:18px;color:var(--text2)">○</span>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   R2 — UPLOAD & DELETE
+   ══════════════════════════════════════════════════════════════ */
+async function r2Upload(file, folder) {
+  const key  = `${folder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  const url  = `${R2_ENDPOINT}/${R2_BUCKET}/${key}`;
+  const now  = new Date();
+  const dStr = now.toISOString().replace(/[:-]|\.\d{3}/g, '').slice(0, 15) + 'Z';
+  const date = dStr.slice(0, 8);
+  const ct   = file.type || 'application/octet-stream';
+  const ph   = 'UNSIGNED-PAYLOAD';
+  const hdrs = { host: new URL(R2_ENDPOINT).host, 'x-amz-content-sha256': ph, 'x-amz-date': dStr, 'content-type': ct };
+  const sh   = Object.keys(hdrs).sort().join(';');
+  const ch   = Object.keys(hdrs).sort().map(k => `${k}:${hdrs[k]}`).join('\n') + '\n';
+  const cr   = ['PUT', `/${R2_BUCKET}/${key}`, '', ch, sh, ph].join('\n');
+  const scope = `${date}/auto/s3/aws4_request`;
+  const sts  = ['AWS4-HMAC-SHA256', dStr, scope, await sha256(cr)].join('\n');
+  const sig  = await hmac(await signingKey(R2_SECRET, date, 'auto', 's3'), sts);
+  const auth = `AWS4-HMAC-SHA256 Credential=${R2_KEY}/${scope}, SignedHeaders=${sh}, Signature=${sig}`;
+  const res  = await fetch(url, { method: 'PUT', headers: { ...hdrs, Authorization: auth }, body: file });
+  if (!res.ok) throw new Error(`R2 upload ${res.status}`);
+  return { key, url: `${R2_PUBLIC}/${key}`, type: file.type.startsWith('video') ? 'video' : 'image', name: file.name };
+}
+
+async function r2Delete(key) {
+  const url  = `${R2_ENDPOINT}/${R2_BUCKET}/${key}`;
+  const now  = new Date();
+  const dStr = now.toISOString().replace(/[:-]|\.\d{3}/g, '').slice(0, 15) + 'Z';
+  const date = dStr.slice(0, 8);
+  const eh   = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+  const hdrs = { host: new URL(R2_ENDPOINT).host, 'x-amz-content-sha256': eh, 'x-amz-date': dStr };
+  const sh   = Object.keys(hdrs).sort().join(';');
+  const ch   = Object.keys(hdrs).sort().map(k => `${k}:${hdrs[k]}`).join('\n') + '\n';
+  const cr   = ['DELETE', `/${R2_BUCKET}/${key}`, '', ch, sh, eh].join('\n');
+  const scope = `${date}/auto/s3/aws4_request`;
+  const sts  = ['AWS4-HMAC-SHA256', dStr, scope, await sha256(cr)].join('\n');
+  const sig  = await hmac(await signingKey(R2_SECRET, date, 'auto', 's3'), sts);
+  const auth = `AWS4-HMAC-SHA256 Credential=${R2_KEY}/${scope}, SignedHeaders=${sh}, Signature=${sig}`;
+  await fetch(url, { method: 'DELETE', headers: { ...hdrs, Authorization: auth } });
+}
+
+/* ── Crypto helpers ── */
+async function sha256(msg) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function hmac(key, msg) {
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(msg));
+  return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function signingKey(secret, date, region, service) {
+  let k = await crypto.subtle.importKey('raw', new TextEncoder().encode('AWS4' + secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  for (const part of [date, region, service, 'aws4_request']) {
+    const s = await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(part));
+    k = await crypto.subtle.importKey('raw', s, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   }
-  overlay.appendChild(close); overlay.appendChild(hint); overlay.appendChild(openBtn);
-  document.body.appendChild(overlay);
-};
+  return k;
+}
 
-window.showP = function(name, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  el.classList.add('active');
-  if (name==='dashboard') renderDash();
-  if (name==='calendar') renderCal();
-  if (name==='interventions') renderInter();
-  if (name==='infos') renderLogList();
-};
-window.openM = function(id) { document.getElementById(id).classList.add('open'); };
-window.closeM = function(id) { document.getElementById(id).classList.remove('open'); };
-window.closeOut = function(e, id) { if (e.target.classList.contains('modal-overlay')) closeM(id); };
-
-function fmtDate(y,m,d) { return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
-function fmtD(dt) { return fmtDate(dt.getFullYear(),dt.getMonth()+1,dt.getDate()); }
-function formatDate(s) { if (!s) return ''; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
+/* ── Date helpers ── */
+function fmt(d)       { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fmtDate(s)   { if (!s) return ''; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; }
 </script>
 </body>
 </html>
