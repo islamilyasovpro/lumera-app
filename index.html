@@ -527,10 +527,13 @@ window.doLogin = async function() {
     const p = document.getElementById('remember').checked ? browserLocalPersistence : browserSessionPersistence;
     await setPersistence(auth, p);
     await signInWithEmailAndPassword(auth, email, pass);
+    // Connexion réussie — cacher login immédiatement
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('loading-screen').style.display = 'flex';
   } catch(e) {
     err.textContent = 'Email ou mot de passe incorrect.';
-    btn.disabled = false; btn.textContent = 'Connexion';
   }
+  btn.disabled = false; btn.textContent = 'Connexion';
 };
 
 window.doLogout = async function() {
