@@ -496,7 +496,7 @@ onAuthStateChanged(auth, user => {
     setupPriceCalc();
     startListeners();
     renderChecklist();
-    requestNotifPermission();
+    setTimeout(requestNotifPermission, 3000);
   } else {
     CU_UID = ''; CU_NAME = '';
     stopListeners();
@@ -816,6 +816,43 @@ window.handleFiles = function(e, type) {
   e.target.value = '';
 };
 
+
+// SHARE MEDIA - native iOS share sheet
+window.shareMedia = async function(url, type, name) {
+  try {
+    // Fetch the file as blob
+    const btn = event.target;
+    btn.textContent = '...';
+    btn.disabled = true;
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const ext = type === 'video' ? (name.includes('.') ? '' : '.mp4') : (name.includes('.') ? '' : '.jpg');
+    const filename = name + ext;
+    const file = new File([blob], filename, { type: blob.type });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: 'Lumera — ' + filename
+      });
+    } else if (navigator.share) {
+      // Fallback: share URL
+      await navigator.share({ url, title: 'Lumera média' });
+    } else {
+      // Last resort: open in new tab
+      window.open(url, '_blank');
+    }
+    btn.textContent = '⬇ Enregistrer';
+    btn.disabled = false;
+  } catch(e) {
+    if (e.name !== 'AbortError') {
+      // User cancelled or error — open in new tab as fallback
+      window.open(url, '_blank');
+    }
+    if(event.target) { event.target.textContent = '⬇ Enregistrer'; event.target.disabled = false; }
+  }
+};
+
 // R2 UPLOAD
 async function uploadToR2(file, folder) {
   const key = `${folder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
@@ -879,17 +916,15 @@ window.openDetail = function(fid) {
   const renderMedia = (mediaArr, type) => {
     if (!mediaArr || !mediaArr.length) return `<div class="empty-media">Aucun média</div>`;
     return `
-    <div style="font-size:11px;color:var(--text2);margin-bottom:10px;padding:8px 10px;background:var(--bg3);border-radius:8px;line-height:1.6">
-      📱 <b style="color:var(--text)">Enregistrer dans la galerie :</b><br>
-      Photo → appuie sur <b style="color:var(--gold)">"Ouvrir →"</b> puis appui long → <b>"Ajouter à la bibliothèque"</b><br>
-      Vidéo → appuie sur <b style="color:var(--gold)">"Ouvrir →"</b> puis appui long → <b>"Télécharger le lien"</b>
-    </div>
-    <div class="media-grid">${mediaArr.map(m => `
+    <div class="media-grid">${mediaArr.map((m,idx) => `
       <div class="media-item">
         ${m.type === 'video'
           ? `<video src="${m.url}" style="width:100%;height:100%;object-fit:cover"></video><span class="media-type">Vidéo</span>`
           : `<img src="${m.url}" alt="photo">`}
-        <a href="${m.url}" target="_blank" rel="noopener" class="media-download" style="font-size:11px;font-weight:600;padding:4px 8px;background:rgba(212,160,23,0.85);color:#000;border-radius:6px;bottom:4px;right:4px">Ouvrir →</a>
+        <button onclick="event.stopPropagation();shareMedia('${m.url}','${m.type||'image'}','${m.name||'lumera_media'}')"
+          style="position:absolute;bottom:4px;left:4px;right:${isAdmin()?'28px':'4px'};background:rgba(212,160,23,0.92);border:none;border-radius:6px;padding:4px 6px;font-size:11px;font-weight:600;color:#000;cursor:pointer;text-align:center">
+          ⬇ Enregistrer
+        </button>
         ${isAdmin() ? `<button class="media-del" onclick="event.stopPropagation();deleteMediaFromInter('${fid}','${m.key}','${type}')">×</button>` : ''}
       </div>`).join('')}</div>`;
   };
