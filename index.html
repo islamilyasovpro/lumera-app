@@ -266,20 +266,17 @@ body::after {
 }
 
 /* ─── STATS GRID PREMIUM ───────────────────────────────────── */
-.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 20px;
+}
 .stat-card {
-  position: relative;
-  min-height: 155px;
-  background:
-    linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.02)),
-    radial-gradient(circle at 20% 0%, rgba(255,255,255,.08), transparent 42%),
-    var(--panel);
+  background: var(--bg2);
   border: 1px solid var(--border);
-  border-radius: 24px;
-  padding: 22px 18px;
-  overflow: hidden;
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.055);
-  backdrop-filter: blur(18px);
+  border-radius: var(--r);
+  padding: 10px;
 }
 .stat-card::before {
   content: "";
@@ -304,9 +301,23 @@ body::after {
 .stat-card:nth-child(2)::after { content: "€"; font-weight: 800; }
 .stat-card:nth-child(3)::after { content: "◷"; }
 .stat-card:nth-child(4)::after { content: "▥"; font-size: 27px; }
-.stat-label { font-size: 14px; color: #fff; letter-spacing: .04em; text-transform: uppercase; font-weight: 900; margin-bottom: 10px; }
-.stat-value { font-family: var(--ff2); font-size: 3.35rem; color: var(--gold); line-height: .85; text-shadow: 0 0 20px rgba(244,194,13,.18); }
-.stat-unit { font-size: 16px; color: var(--text2); margin-top: 12px; }
+.stat-label {
+  font-size: 10px;
+  color: var(--text2);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.stat-value {
+  font-family: var(--ff2);
+  font-size: 1.6rem;
+  color: var(--gold);
+}
+.stat-unit {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 2px;
+}
 
 #page-dashboard .btn-primary[data-action="new-intervention"] {
   height: 66px;
