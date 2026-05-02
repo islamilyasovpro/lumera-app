@@ -209,6 +209,8 @@ textarea.input { resize: none; }
 
 /* ── PRINT / PDF ─────────────────────────────────────────────── */
 @media print {
+  #print-area { page-break-after: avoid !important; break-after: avoid !important; }
+  #print-area * { page-break-inside: avoid !important; break-inside: avoid !important; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   html, body { overflow: visible !important; height: auto !important; background: #fff !important; color: #000 !important; font-family: 'DM Sans', sans-serif !important; }
   .screen, .modal-backdrop { position: static !important; opacity: 1 !important; pointer-events: all !important; overflow: visible !important; }
@@ -812,17 +814,22 @@ function exportPDF(interId) {
   const inter = store.interventions.find(i=>i.id===interId);
   if (!inter) return;
 
-  const photoHTML = (arr, label) => {
-    if (!arr || !arr.length) return `<p style="color:#999;font-size:12px">Aucun média ${label}</p>`;
-    return arr.filter(m=>m.type!=='video').map(m=>`<img class="print-photo" src="${m.url}" alt="${label}">`).join('');
+  const photoHTML = (arr) => {
+    if (!arr || !arr.length) return '<p style="color:#999;font-size:12px;margin:0">Aucun média</p>';
+    return arr.filter(m=>m.type!=='video').map(m=>`<img class="print-photo" src="${m.url}" alt="">`).join('');
   };
 
   document.getElementById('print-area').innerHTML = `
+    <style>
+      @page { size: A4; margin: 16mm; }
+      * { box-sizing: border-box; }
+      body { font-family: 'DM Sans', sans-serif; color: #111; background: #fff; }
+    </style>
     <div class="print-header">
       <div>
         <img class="print-logo" src="https://i.postimg.cc/brV0XrTg/logo.png" alt="Lumera" onerror="this.style.display='none'">
         <div class="print-title">Fiche d'intervention</div>
-        <div class="print-meta">Lumera Rénovation de Phares · Liège & alentours · 0492 69 28 96</div>
+        <div class="print-meta">Lumera Rénovation de Phares · Liège & Eupen · 0492 69 28 96</div>
       </div>
       <div style="text-align:right">
         <div style="font-size:12px;color:#666">Date d'impression</div>
@@ -831,45 +838,37 @@ function exportPDF(interId) {
       </div>
     </div>
 
-    <div class="print-section">
-      <div class="print-section-title">Informations client</div>
-      <div class="print-row"><span class="print-key">Client</span><span class="print-val">${inter.client}</span></div>
-      ${inter.phone?`<div class="print-row"><span class="print-key">Téléphone</span><span class="print-val">${inter.phone}</span></div>`:''}
-      <div class="print-row"><span class="print-key">Véhicule</span><span class="print-val">${inter.vehicle||'—'}</span></div>
-      <div class="print-row"><span class="print-key">Adresse</span><span class="print-val">${inter.address||'—'}</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="print-section">
+        <div class="print-section-title">Client</div>
+        <div class="print-row"><span class="print-key">Nom</span><span class="print-val">${inter.client}</span></div>
+        ${inter.phone?`<div class="print-row"><span class="print-key">Téléphone</span><span class="print-val">${inter.phone}</span></div>`:''}
+        <div class="print-row"><span class="print-key">Véhicule</span><span class="print-val">${inter.vehicle||'—'}</span></div>
+        <div class="print-row"><span class="print-key">Adresse</span><span class="print-val">${inter.address||'—'}</span></div>
+      </div>
+      <div class="print-section">
+        <div class="print-section-title">Intervention</div>
+        <div class="print-row"><span class="print-key">Date</span><span class="print-val">${fmtDate(inter.date)} à ${inter.time}</span></div>
+        <div class="print-row"><span class="print-key">Technicien</span><span class="print-val">${inter.createdBy}</span></div>
+        <div class="print-row"><span class="print-key">État phares</span><span class="print-val">${inter.state==='bad'?'Très abîmés':'Standard'}</span></div>
+        ${inter.dureeMinutes?`<div class="print-row"><span class="print-key">Durée</span><span class="print-val">${fmtDuration(inter.dureeMinutes)}</span></div>`:''}
+        <div class="print-row"><span class="print-key">Prix rénovation</span><span class="print-val">${inter.price||79} €</span></div>
+        ${inter.prixDeplacement>0?`<div class="print-row"><span class="print-key">Déplacement</span><span class="print-val">${inter.prixDeplacement} €</span></div>`:''}
+        <div class="print-row" style="font-weight:800"><span class="print-key">TOTAL</span><span class="print-val print-total">${inter.total||inter.price||79} €</span></div>
+      </div>
     </div>
 
-    <div class="print-section">
-      <div class="print-section-title">Intervention</div>
-      <div class="print-row"><span class="print-key">Date</span><span class="print-val">${fmtDate(inter.date)} à ${inter.time}</span></div>
-      <div class="print-row"><span class="print-key">Technicien</span><span class="print-val">${inter.createdBy}</span></div>
-      <div class="print-row"><span class="print-key">État phares</span><span class="print-val">${inter.state==='bad'?'Très abîmés':'Standard'}</span></div>
-      ${inter.dureeMinutes?`<div class="print-row"><span class="print-key">Durée</span><span class="print-val">${fmtDuration(inter.dureeMinutes)}</span></div>`:''}
-      ${inter.notes?`<div class="print-row"><span class="print-key">Notes</span><span class="print-val">${inter.notes}</span></div>`:''}
-    </div>
+    ${inter.notes?`<div class="print-section" style="margin-bottom:16px"><div class="print-section-title">Notes</div><div style="font-size:13px;color:#444;padding:6px 0">${inter.notes}</div></div>`:''}
 
-    <div class="print-section">
-      <div class="print-section-title">Tarification</div>
-      <div class="print-row"><span class="print-key">Prix rénovation</span><span class="print-val">${inter.price||79} €</span></div>
-      ${inter.prixDeplacement>0?`<div class="print-row"><span class="print-key">Déplacement (${inter.deplacement})</span><span class="print-val">${inter.prixDeplacement} €</span></div>`:''}
-      <div class="print-row" style="font-weight:800;font-size:15px"><span class="print-key">TOTAL</span><span class="print-val print-total">${inter.total||inter.price||79} €</span></div>
-    </div>
-
-    ${(inter.photosAvant&&inter.photosAvant.length)||(inter.photosApres&&inter.photosApres.length)?`
-    <div class="print-section">
-      <div class="print-section-title">Avant rénovation</div>
-      <div class="print-photos">${photoHTML(inter.photosAvant,'avant')}</div>
-      <div class="print-section-title" style="margin-top:12px">Après rénovation</div>
-      <div class="print-photos">${photoHTML(inter.photosApres,'après')}</div>
-    </div>`:''}
-
-    <div class="print-sign">
-      <div style="font-size:11px;color:#999;margin-bottom:8px">Signature du client (bon pour accord)</div>
-    </div>
-
-    <div class="print-footer">
-      <span>Lumera Rénovation de Phares — Liège & Eupen</span>
-      <span>Réf. ${inter.id.slice(-8).toUpperCase()}</span>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div class="print-section-title" style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#E4AD12;border-bottom:1px solid #eee;padding-bottom:5px;margin-bottom:8px">Avant rénovation</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">${photoHTML(inter.photosAvant)}</div>
+      </div>
+      <div>
+        <div class="print-section-title" style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#E4AD12;border-bottom:1px solid #eee;padding-bottom:5px;margin-bottom:8px">Après rénovation</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">${photoHTML(inter.photosApres)}</div>
+      </div>
     </div>`;
 
   setTimeout(()=>{ window.print(); }, 150);
@@ -990,8 +989,8 @@ function openDetail(interId) {
 
   // Boutons PDF + SMS
   const extraBtns = `
-    <button class="btn btn-ghost" data-action="export-pdf" data-id="${inter.id}" style="margin-top:8px;flex:none;width:100%">📄 Exporter PDF</button>
-    ${inter.phone?`<button class="btn btn-blue" data-action="send-sms" data-phone="${inter.phone}" data-client="${inter.client}" data-date="${inter.date}" data-time="${inter.time}" style="margin-top:6px;flex:none;width:100%">💬 Envoyer rappel SMS</button>`:''}`;
+    <button data-action="export-pdf" data-id="${inter.id}" style="margin-top:8px;width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:#171717;color:var(--text);font-family:var(--ff);font-size:13px;font-weight:700;cursor:pointer;">📄 Exporter PDF</button>
+    ${inter.phone?`<button data-action="send-sms" data-phone="${inter.phone}" data-client="${inter.client}" data-date="${inter.date}" data-time="${inter.time}" style="margin-top:6px;width:100%;padding:11px;border-radius:12px;border:1px solid rgba(0,120,255,.3);background:rgba(0,120,255,.12);color:#4da3ff;font-family:var(--ff);font-size:13px;font-weight:700;cursor:pointer;">💬 Envoyer rappel SMS</button>`:''}`;
 
   const mediaBlock = (arr,type) => {
     if (!arr||!arr.length) return '<p class="empty-media">Aucun média</p>';
