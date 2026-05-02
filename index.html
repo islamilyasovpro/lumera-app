@@ -638,7 +638,7 @@ document.addEventListener('click', async e => {
     case 'del-media':        await deleteMedia(t.dataset.fid,t.dataset.key,t.dataset.type); break;
     case 'save-media':       await shareMedia(t.dataset.url,t.dataset.mtype,t.dataset.name); break;
     case 'export-pdf':       exportPDF(t.dataset.id); break;
-    case 'send-sms':         sendSMS(t.dataset.phone,t.dataset.client); break;
+    case 'send-sms':         sendSMS(t.dataset.phone,t.dataset.client,t.dataset.date,t.dataset.time); break;
   }
 });
 
@@ -991,7 +991,7 @@ function openDetail(interId) {
   // Boutons PDF + SMS
   const extraBtns = `
     <button class="btn btn-ghost" data-action="export-pdf" data-id="${inter.id}" style="margin-top:8px;flex:none;width:100%">📄 Exporter PDF</button>
-    ${inter.phone?`<button class="btn btn-blue" data-action="send-sms" data-phone="${inter.phone}" data-client="${inter.client}" data-date="${inter.date}" data-time="${inter.time}" style="margin-top:6px;flex:none;width:100%">💬 Envoyer rappel SMS</button>`:''};
+    ${inter.phone?`<button class="btn btn-blue" data-action="send-sms" data-phone="${inter.phone}" data-client="${inter.client}" data-date="${inter.date}" data-time="${inter.time}" style="margin-top:6px;flex:none;width:100%">💬 Envoyer rappel SMS</button>`:''}`;
 
   const mediaBlock = (arr,type) => {
     if (!arr||!arr.length) return '<p class="empty-media">Aucun média</p>';
