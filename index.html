@@ -638,7 +638,7 @@ document.addEventListener('click', async e => {
     case 'del-media':        await deleteMedia(t.dataset.fid,t.dataset.key,t.dataset.type); break;
     case 'save-media':       await shareMedia(t.dataset.url,t.dataset.mtype,t.dataset.name); break;
     case 'export-pdf':       exportPDF(t.dataset.id); break;
-    case 'send-sms':         sendSMS(t.dataset.phone,t.dataset.client); break;
+    case 'send-sms':         sendSMS(t.dataset.phone,t.dataset.client,t.dataset.date,t.dataset.time); break;
   }
 });
 
@@ -800,12 +800,11 @@ async function deleteMedia(interId,key,type) {
 }
 
 /* ── SMS RAPPEL ──────────────────────────────────────────────── */
-functionfunction sendSMS(phone, client, date, time) {
+function sendSMS(phone, client) {
   if (!phone) { alert('Aucun numéro de téléphone pour ce client.'); return; }
   const clean = phone.replace(/\s/g,'');
-  const msg = encodeURIComponent(`Bonjour Mr/Mme ${client}, c'est Lumera 👋. Petit rappel pour votre rendez-vous de demain, c'est à dire le ${fmtDate(date)} à ${time}. Je me déplace à l'adresse communiquée par téléphone pour la rénovation des phares. Merci de me prévenir si empêchement. À demain 👍`);
+  const msg = encodeURIComponent(`Bonjour ${client}, je vous contacte de la part de Lumera Rénovation de Phares. Pour maintenir la qualité de votre rénovation et éviter un refus au prochain contrôle technique, nous recommandons un entretien annuel. N'hésitez pas à nous contacter au 0492 69 28 96. Merci !`);
   window.location.href = `sms:${clean}?body=${msg}`;
-}
 }
 
 /* ── PDF EXPORT ──────────────────────────────────────────────── */
@@ -992,7 +991,7 @@ function openDetail(interId) {
   // Boutons PDF + SMS
   const extraBtns = `
     <button class="btn btn-ghost" data-action="export-pdf" data-id="${inter.id}" style="margin-top:8px;flex:none;width:100%">📄 Exporter PDF</button>
-    ${inter.phone?`<a href="sms:${inter.phone.replace(/\s/g,'')}?body=${encodeURIComponent(`Bonjour ${inter.client}, voici un rappel de la part de Lumera Rénovation de Phares. Pour maintenir la qualité de votre rénovation et éviter un refus au contrôle technique, nous recommandons un entretien annuel. Contactez-nous : 0492 69 28 96`)}" class="btn btn-blue" style="margin-top:6px;flex:none;width:100%;text-align:center;text-decoration:none;display:block;padding:9px 10px;border-radius:12px;font-size:12px;font-weight:700;border:1px solid rgba(0,120,255,.3);background:rgba(0,120,255,.12);color:#4da3ff">💬 Envoyer rappel SMS</a>`:''}`;
+    ${inter.phone?`<button class="btn btn-blue" data-action="send-sms" data-phone="${inter.phone}" data-client="${inter.client}" data-date="${inter.date}" data-time="${inter.time}" style="margin-top:6px;flex:none;width:100%">💬 Envoyer rappel SMS</button>`:''}`;
 
   const mediaBlock = (arr,type) => {
     if (!arr||!arr.length) return '<p class="empty-media">Aucun média</p>';
