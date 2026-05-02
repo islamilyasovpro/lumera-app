@@ -814,105 +814,76 @@ function exportPDF(interId) {
   const inter = store.interventions.find(i=>i.id===interId);
   if (!inter || inter.status !== 'done') return;
 
-  const photoHTML = (arr) => {
-    if (!arr || !arr.length) return '<p style="color:#999;font-size:12px;margin:0">Aucun média</p>';
-    return arr.filter(m=>m.type!=='video').map(m=>`<img src="${m.url}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:5px;border:1px solid #eee;" alt="">`).join('');
+  const photo = (arr) => {
+    if (!arr || !arr.length) return '<p style="color:#999;font-size:12px">Aucun média</p>';
+    return arr.filter(m=>m.type!=='video').map(m=>`<img src="${m.url}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:5px;border:1px solid #eee">`).join('');
   };
 
-  const printContent = `
-    <style>
-      @page { size: A4; margin: 0; }
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: Arial, sans-serif; color: #111; background: #fff; font-size: 13px; padding: 14mm; }
-      .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #E4AD12; padding-bottom: 12px; margin-bottom: 14px; }
-      .logo { height: 44px; }
-      .title { font-size: 1.6rem; font-weight: 900; letter-spacing: .1em; }
-      .meta { font-size: 11px; color: #666; margin-top: 2px; }
-      .status { font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; border: 1px solid; background: #e8f5e9; color: #2e7d32; }
-      .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-      .section-title { font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #E4AD12; border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 8px; }
-      .row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f5f5f5; }
-      .row:last-child { border-bottom: none; }
-      .key { color: #666; }
-      .val { font-weight: 700; text-align: right; }
-      .total { font-size: 15px; font-weight: 800; color: #E4AD12; }
-      .photos { display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; }
-      .notes-box { background: #f9f9f9; border-radius: 6px; padding: 8px; font-size: 12px; color: #555; margin-bottom: 14px; }
-      .footer { margin-top: 16px; border-top: 1px solid #eee; padding-top: 10px; font-size: 11px; color: #999; text-align: center; }
-    </style>
+  const win = window.open('', '_blank');
+  if (!win) { alert('Autorise les popups Safari pour exporter le PDF.'); return; }
 
-    <div class="header">
-      <div>
-        <img class="logo" src="https://i.postimg.cc/brV0XrTg/logo.png" alt="Lumera" onerror="this.style.display='none'">
-        <div class="title">Fiche d'intervention</div>
-        <div class="meta">Lumera Rénovation de Phares · Liège & Eupen · 0492 69 28 96</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:11px;color:#666">${new Date().toLocaleDateString('fr-BE')}</div>
-        <span class="status">✓ Terminée</span>
-      </div>
-    </div>
-
-    <div class="grid2">
-      <div>
-        <div class="section-title">Client</div>
-        <div class="row"><span class="key">Nom</span><span class="val">${inter.client}</span></div>
-        ${inter.phone?`<div class="row"><span class="key">Téléphone</span><span class="val">${inter.phone}</span></div>`:''}
-        <div class="row"><span class="key">Véhicule</span><span class="val">${inter.vehicle||'—'}</span></div>
-        <div class="row"><span class="key">Adresse</span><span class="val">${inter.address||'—'}</span></div>
-      </div>
-      <div>
-        <div class="section-title">Intervention</div>
-        <div class="row"><span class="key">Date</span><span class="val">${fmtDate(inter.date)} à ${inter.time}</span></div>
-        <div class="row"><span class="key">Technicien</span><span class="val">${inter.createdBy}</span></div>
-        <div class="row"><span class="key">État phares</span><span class="val">${inter.state==='bad'?'Très abîmés':'Standard'}</span></div>
-        ${inter.dureeMinutes?`<div class="row"><span class="key">Durée</span><span class="val">${fmtDuration(inter.dureeMinutes)}</span></div>`:''}
-        <div class="row"><span class="key">Prix rénovation</span><span class="val">${inter.price||79} €</span></div>
-        ${inter.prixDeplacement>0?`<div class="row"><span class="key">Déplacement</span><span class="val">${inter.prixDeplacement} €</span></div>`:''}
-        <div class="row"><span class="key">TOTAL</span><span class="val total">${inter.total||inter.price||79} €</span></div>
-      </div>
-    </div>
-
-    ${inter.notes?`<div class="notes-box"><strong>Notes :</strong> ${inter.notes}</div>`:''}
-
-    <div class="grid2">
-      <div>
-        <div class="section-title">Avant rénovation</div>
-        <div class="photos">${photoHTML(inter.photosAvant)}</div>
-      </div>
-      <div>
-        <div class="section-title">Après rénovation</div>
-        <div class="photos">${photoHTML(inter.photosApres)}</div>
-      </div>
-    </div>
-
-    <div class="footer">Lumera Rénovation de Phares — Liège &amp; Eupen</div>`;
-
-  // Inject into print-area, hide app, print, restore
-  const printArea = document.getElementById('print-area');
-  const appScreen = document.getElementById('screen-app');
-
-  printArea.innerHTML = printContent;
-  printArea.style.display = 'block';
-  appScreen.style.display = 'none';
-
-  // Wait for images then print
-  const imgs = printArea.querySelectorAll('img');
-  let loaded = 0;
-  const doPrint = () => {
-    window.print();
-    // Restore app after print dialog closes
-    setTimeout(() => {
-      printArea.style.display = 'none';
-      printArea.innerHTML = '';
-      appScreen.style.display = 'flex';
-    }, 500);
-  };
-  if (imgs.length === 0) { doPrint(); return; }
-  imgs.forEach(img => {
-    if (img.complete) { loaded++; if (loaded === imgs.length) doPrint(); }
-    else { img.onload = img.onerror = () => { loaded++; if (loaded === imgs.length) doPrint(); }; }
-  });
+  win.document.write(`<!DOCTYPE html>
+<html lang="fr"><head>
+<meta charset="UTF-8">
+<title>Fiche — ${inter.client}</title>
+<style>
+@page{size:A4;margin:0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;color:#111;padding:14mm;font-size:13px}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #E4AD12;padding-bottom:12px;margin-bottom:14px}
+.ttl{font-size:1.5rem;font-weight:900;letter-spacing:.08em}
+.sub{font-size:11px;color:#666;margin-top:2px}
+.ok{font-size:11px;font-weight:800;padding:3px 8px;border-radius:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.st{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#E4AD12;border-bottom:1px solid #eee;padding-bottom:4px;margin-bottom:8px}
+.r{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f5f5f5}
+.r:last-child{border-bottom:none}
+.k{color:#666}
+.v{font-weight:700;text-align:right}
+.tot{font-size:15px;font-weight:800;color:#E4AD12}
+.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.ft{margin-top:16px;border-top:1px solid #eee;padding-top:10px;font-size:11px;color:#999;text-align:center}
+</style>
+</head><body>
+<div class="hdr">
+  <div>
+    <img src="https://i.postimg.cc/brV0XrTg/logo.png" style="height:40px" onerror="this.style.display='none'">
+    <div class="ttl">Fiche d'intervention</div>
+    <div class="sub">Lumera Rénovation de Phares · Liège &amp; Eupen · 0492 69 28 96</div>
+  </div>
+  <div style="text-align:right">
+    <div style="font-size:11px;color:#666">${new Date().toLocaleDateString('fr-BE')}</div>
+    <span class="ok">✓ Terminée</span>
+  </div>
+</div>
+<div class="g2">
+  <div>
+    <div class="st">Client</div>
+    <div class="r"><span class="k">Nom</span><span class="v">${inter.client}</span></div>
+    ${inter.phone?`<div class="r"><span class="k">Téléphone</span><span class="v">${inter.phone}</span></div>`:''}
+    <div class="r"><span class="k">Véhicule</span><span class="v">${inter.vehicle||'—'}</span></div>
+    <div class="r"><span class="k">Adresse</span><span class="v">${inter.address||'—'}</span></div>
+  </div>
+  <div>
+    <div class="st">Intervention</div>
+    <div class="r"><span class="k">Date</span><span class="v">${fmtDate(inter.date)} à ${inter.time}</span></div>
+    <div class="r"><span class="k">Technicien</span><span class="v">${inter.createdBy}</span></div>
+    <div class="r"><span class="k">État phares</span><span class="v">${inter.state==='bad'?'Très abîmés':'Standard'}</span></div>
+    ${inter.dureeMinutes?`<div class="r"><span class="k">Durée</span><span class="v">${fmtDuration(inter.dureeMinutes)}</span></div>`:''}
+    <div class="r"><span class="k">Prix rénovation</span><span class="v">${inter.price||79} €</span></div>
+    ${inter.prixDeplacement>0?`<div class="r"><span class="k">Déplacement</span><span class="v">${inter.prixDeplacement} €</span></div>`:''}
+    <div class="r"><span class="k">TOTAL</span><span class="v tot">${inter.total||inter.price||79} €</span></div>
+  </div>
+</div>
+${inter.notes?`<div style="background:#f9f9f9;border-radius:6px;padding:8px;font-size:12px;color:#555;margin-bottom:14px"><strong>Notes :</strong> ${inter.notes}</div>`:''}
+<div class="g2">
+  <div><div class="st">Avant rénovation</div><div class="pg">${photo(inter.photosAvant)}</div></div>
+  <div><div class="st">Après rénovation</div><div class="pg">${photo(inter.photosApres)}</div></div>
+</div>
+<div class="ft">Lumera Rénovation de Phares — Liège &amp; Eupen</div>
+<script>window.onload=function(){window.print()}<\/script>
+</body></html>`);
+  win.document.close();
 }
 
 /* ── LOGISTIQUE ──────────────────────────────────────────────── */
