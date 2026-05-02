@@ -800,10 +800,10 @@ async function deleteMedia(interId,key,type) {
 }
 
 /* ── SMS RAPPEL ──────────────────────────────────────────────── */
-function sendSMS(phone, client) {
+function sendSMS(phone, client, date, time) {
   if (!phone) { alert('Aucun numéro de téléphone pour ce client.'); return; }
   const clean = phone.replace(/\s/g,'');
-  const msg = encodeURIComponent(`Bonjour ${client}, je vous contacte de la part de Lumera Rénovation de Phares. Pour maintenir la qualité de votre rénovation et éviter un refus au prochain contrôle technique, nous recommandons un entretien annuel. N'hésitez pas à nous contacter au 0492 69 28 96. Merci !`);
+  const msg = encodeURIComponent(`Bonjour Mr/Mme ${client}, c'est Lumera 👋. Petit rappel pour votre rendez-vous de demain, c'est à dire le ${fmtDate(date)} à ${time}. Je me déplace à l'adresse communiquée par téléphone pour la rénovation des phares. Merci de me prévenir si empêchement. À demain 👍`);
   window.location.href = `sms:${clean}?body=${msg}`;
 }
 
