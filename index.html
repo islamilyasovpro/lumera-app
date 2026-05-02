@@ -991,7 +991,7 @@ function openDetail(interId) {
   // Boutons PDF + SMS
   const extraBtns = `
     <button class="btn btn-ghost" data-action="export-pdf" data-id="${inter.id}" style="margin-top:8px;flex:none;width:100%">📄 Exporter PDF</button>
-    ${inter.phone?`<a href="sms:${inter.phone.replace(/\s/g,'')}?body=${encodeURIComponent(`Bonjour ${inter.client}, voici un rappel de la part de Lumera Rénovation de Phares. Pour maintenir la qualité de votre rénovation et éviter un refus au contrôle technique, nous recommandons un entretien annuel. Contactez-nous : 0492 69 28 96`)}" class="btn btn-blue" style="margin-top:6px;flex:none;width:100%;text-align:center;text-decoration:none;display:block;padding:9px 10px;border-radius:12px;font-size:12px;font-weight:700;border:1px solid rgba(0,120,255,.3);background:rgba(0,120,255,.12);color:#4da3ff">💬 Envoyer rappel SMS</a>`:''}`;
+    ${inter.phone?`<button class="btn btn-blue" data-action="send-sms" data-phone="${inter.phone}" data-client="${inter.client}" data-date="${inter.date}" data-time="${inter.time}" style="margin-top:6px;flex:none;width:100%">💬 Envoyer rappel SMS</button>`:''};
 
   const mediaBlock = (arr,type) => {
     if (!arr||!arr.length) return '<p class="empty-media">Aucun média</p>';
