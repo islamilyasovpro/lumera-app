@@ -803,7 +803,7 @@ async function deleteMedia(interId,key,type) {
 function sendSMS(phone, client) {
   if (!phone) { alert('Aucun numéro de téléphone pour ce client.'); return; }
   const clean = phone.replace(/\s/g,'');
-  const msg = encodeURIComponent(`Bonjour Mr/Mme ${client}, c'est Lumera 👋. Petit rappel pour votre rendez-vous de demain à ${heure}. Je me déplace à votre adresse pour la rénovation des phares. Merci de me prévenir si empêchement. À demain 👍);
+  const msg = encodeURIComponent(`Bonjour Mr/Mme ${client}, c'est Lumera 👋. Petit rappel pour votre rendez-vous de demain, c'est à dire le ${fmtDate(inter.date)} à ${inter.time}. Je me déplace à l'adresse communiquée par téléphone pour la rénovation des phares. Merci de me prévenir si empêchement. À demain 👍);
   window.location.href = `sms:${clean}?body=${msg}`;
 }
 
